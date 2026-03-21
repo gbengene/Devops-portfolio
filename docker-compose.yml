@@ -1,5 +1,6 @@
 services:
   frontend:
+    image: gbengene007/portfolio-frontend:latest
     build:
       context: ./frontend
       target: runner
@@ -13,6 +14,7 @@ services:
     restart: unless-stopped
 
   backend:
+    image: gbengene/portfolio-backend:latest
     build:
       context: ./backend
       target: runner
