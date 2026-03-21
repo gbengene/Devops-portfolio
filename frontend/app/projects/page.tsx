@@ -1,276 +1,152 @@
 import Link from 'next/link';
 
-async function getProjects() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/projects`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) throw new Error('Failed');
-    return res.json();
-  } catch {
-    return [];
-  }
-}
-
 export default async function ProjectsPage() {
-  const apiProjects = await getProjects();
-
-  const featuredProjects = [
-    {
-      id: 'p1',
-      number: '01',
-      title: 'DevOps Portfolio Site',
-      description:
-        'This site — full-stack Next.js + Express API, containerised with Docker, deployed via GitHub Actions CI/CD to AWS EC2 behind Nginx with auto-renewing TLS.',
-      tags: ['Next.js 14', 'Node.js', 'Docker', 'GitHub Actions', 'AWS EC2', 'Nginx', 'Let\'s Encrypt'],
-      github: 'https://github.com/gbengene/Devops-portfolio',
-      live: '',
-      highlight: '3 containers · 0-downtime deploys',
-      status: 'live',
-    },
-    {
-      id: 'p2',
-      number: '02',
-      title: 'Microservices Platform',
-      description:
-        'Kubernetes-based platform with 4 microservices, ArgoCD GitOps pipeline, Prometheus/Grafana observability stack and custom SLO dashboards. Chaos engineering tested.',
-      tags: ['Kubernetes', 'Helm', 'ArgoCD', 'Prometheus', 'Grafana', 'Docker', 'GitHub Actions'],
-      github: 'https://github.com/gbengene',
-      live: '',
-      highlight: 'GitOps · SLO dashboards · chaos tested',
-      status: 'building',
-    },
-    {
-      id: 'p3',
-      number: '03',
-      title: 'Cloud Infrastructure Automation',
-      description:
-        'Reusable Terraform modules for AWS — VPC, EKS, RDS, ALB across dev/staging/prod environments. Vault secrets management, least-privilege IAM and Atlantis PR-driven infra review.',
-      tags: ['Terraform', 'AWS', 'HashiCorp Vault', 'IAM', 'Atlantis', 'Bash', 'Python'],
-      github: 'https://github.com/gbengene',
-      live: '',
-      highlight: '3 environments · IaC best practices',
-      status: 'building',
-    },
-  ];
-
   return (
-    <div className="projects-root">
+    <div className="root">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=IBM+Plex+Mono:wght@300;400;500&family=Crimson+Pro:wght@400;600&display=swap');
 
         :root {
-          --bg: #0b0c10;
-          --surface: #13151a;
-          --surface2: #1a1d26;
-          --border: #1f2230;
-          --accent: #ff4d6d;
-          --text: #e8eaf0;
-          --muted: #6b7280;
-          --dim: #3a3f52;
+          --cream:  #fdf8f0;
+          --cream2: #f5ede0;
+          --brown:  #2c2416;
+          --brown2: #3d3020;
+          --brown3: #4e3e2a;
+          --gold:   #c9a96e;
+          --gold2:  #e8c98a;
+          --rust:   #8b4513;
+          --muted:  #5a4a35;
+          --dim:    #a89070;
+          --border: #e8dece;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .projects-root {
+        .root {
           min-height: 100vh;
-          background: var(--bg);
-          font-family: 'DM Mono', monospace;
-          color: var(--text);
+          background: var(--cream);
           display: grid;
-          grid-template-columns: 280px 1fr;
+          grid-template-columns: 240px 1fr;
+          font-family: 'Crimson Pro', Georgia, serif;
+          color: var(--brown);
         }
 
-        /* ── SIDEBAR (same as home) ── */
         .sidebar {
-          background: var(--surface);
-          border-right: 1px solid var(--border);
-          padding: 2rem 1.5rem;
+          background: var(--brown);
+          border-right: 1px solid var(--brown2);
+          padding: 1.75rem 1.25rem;
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1.1rem;
           position: sticky;
           top: 0;
           height: 100vh;
           overflow-y: auto;
         }
-        .sidebar::-webkit-scrollbar { width: 3px; }
-        .sidebar::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+        .sidebar::-webkit-scrollbar { width: 2px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--brown3); border-radius: 2px; }
 
-        .avatar {
-          width: 64px; height: 64px; border-radius: 50%;
-          background: var(--surface2); border: 2px solid var(--accent);
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700;
-          color: var(--accent); letter-spacing: -1px;
-        }
-        .sidebar-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.2; margin-bottom: 3px; }
-        .sidebar-role { font-size: 11px; color: var(--accent); letter-spacing: .04em; }
-        .divider { height: 1px; background: var(--border); }
-        .sidebar-label { font-size: 9px; font-weight: 500; color: var(--dim); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+        .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--brown); }
+        .s-name { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: #f5ede0; line-height: 1.2; margin-bottom: 2px; }
+        .s-role { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: var(--gold); letter-spacing: .09em; text-transform: uppercase; }
 
-        .nav-item {
-          display: block; font-size: 11px; color: var(--muted); text-decoration: none;
-          padding: 7px 10px; border-radius: 5px; margin-bottom: 3px;
-          transition: background .15s, color .15s;
-          letter-spacing: .02em;
-        }
-        .nav-item:hover { background: var(--surface2); color: var(--text); }
-        .nav-item.active { background: rgba(255,77,109,.1); color: var(--accent); }
+        .divider { height: 1px; background: var(--brown3); }
+        .s-label { font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 500; color: var(--gold); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 7px; }
 
-        .stack-tag {
-          display: inline-block; font-size: 9px; color: var(--muted);
-          border: 1px solid var(--border); padding: 3px 8px; border-radius: 3px;
-          margin: 0 4px 4px 0;
-        }
+        .nav-item { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #c4a882; text-decoration: none; padding: 6px 8px; border-radius: 3px; margin-bottom: 2px; transition: background .15s, color .15s; letter-spacing: .03em; }
+        .nav-item:hover { background: var(--brown2); color: #f5ede0; }
+        .nav-item.active { background: rgba(201,169,110,.15); color: var(--gold2); }
 
-        /* ── MAIN ── */
-        .main { padding: 2.5rem; }
+        .stack-tag { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: #c4a882; border: 1px solid var(--brown3); padding: 2px 7px; border-radius: 2px; margin: 0 3px 4px 0; }
 
-        .page-header { margin-bottom: 2.5rem; }
-        .page-tag { font-size: 10px; color: var(--accent); letter-spacing: .08em; margin-bottom: 10px; }
-        .page-title {
-          font-family: 'Syne', sans-serif; font-size: clamp(24px, 3vw, 36px);
-          font-weight: 800; color: var(--text); letter-spacing: -.02em;
-          line-height: 1.1; margin-bottom: 10px;
-        }
-        .page-title em { font-style: normal; color: var(--accent); }
-        .page-sub { font-size: 12px; color: var(--muted); line-height: 1.8; max-width: 500px; }
+        .curr-title { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: #d4b88a; line-height: 1.5; }
+        .curr-co { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--gold); margin-top: 1px; }
+        .curr-date { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: #9a8060; margin-top: 2px; }
 
-        /* Project cards */
-        .projects-grid { display: flex; flex-direction: column; gap: 16px; }
+        /* MAIN */
+        .main { background: var(--cream); display: flex; flex-direction: column; min-height: 100vh; }
 
-        .project-card {
-          background: var(--surface);
+        .top-nav { background: var(--brown); padding: 12px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-links { display: flex; gap: 22px; }
+        .nav-link { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #c4a882; text-decoration: none; letter-spacing: .04em; transition: color .15s; }
+        .nav-link:hover, .nav-link.active { color: var(--gold2); }
+        .nav-cta { font-family: 'IBM Plex Mono', monospace; font-size: 9px; background: var(--gold); color: var(--brown); padding: 6px 16px; border-radius: 2px; text-decoration: none; font-weight: 600; letter-spacing: .06em; }
+
+        .content { padding: 36px 40px; }
+
+        .page-tag { font-family: 'IBM Plex Mono', monospace; display: inline-block; font-size: 8px; color: var(--brown); background: var(--gold2); padding: 3px 10px; border-radius: 2px; letter-spacing: .07em; margin-bottom: 12px; text-transform: uppercase; }
+
+        .page-h1 { font-family: 'Playfair Display', serif; font-size: clamp(28px, 3vw, 40px); font-weight: 800; color: var(--brown); line-height: 1.08; letter-spacing: -.02em; margin-bottom: 10px; }
+        .page-h1 em { font-style: italic; color: var(--rust); }
+        .page-sub { font-size: 13px; color: var(--muted); line-height: 1.75; max-width: 500px; margin-bottom: 28px; }
+
+        .projects-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+
+        .proj-card {
+          background: #fff;
           border: 1px solid var(--border);
-          border-radius: 10px;
-          padding: 1.5rem;
+          border-radius: 6px;
+          padding: 18px 20px;
           display: grid;
-          grid-template-columns: auto 1fr;
-          gap: 1.25rem;
+          grid-template-columns: 52px 1fr auto;
+          gap: 16px;
+          align-items: start;
           transition: border-color .2s;
         }
-        .project-card:hover { border-color: var(--accent); }
+        .proj-card:hover { border-color: var(--gold); }
 
-        .project-number {
-          font-family: 'Syne', sans-serif;
-          font-size: 36px;
-          font-weight: 800;
-          color: var(--dim);
-          line-height: 1;
-          min-width: 48px;
-          padding-top: 4px;
-          transition: color .2s;
-        }
-        .project-card:hover .project-number { color: var(--accent); }
+        .proj-num { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 800; color: var(--border); line-height: 1; transition: color .2s; padding-top: 2px; }
+        .proj-card:hover .proj-num { color: var(--gold2); }
 
-        .project-body {}
+        .proj-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--brown); margin-bottom: 2px; }
+        .proj-highlight { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: var(--rust); margin-bottom: 8px; letter-spacing: .02em; }
+        .proj-desc { font-size: 12.5px; color: var(--muted); line-height: 1.75; margin-bottom: 10px; }
 
-        .project-top {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 6px;
-        }
+        .proj-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+        .proj-tag { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: var(--muted); background: var(--cream2); border: 1px solid var(--border); padding: 2px 7px; border-radius: 2px; }
 
-        .project-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--text);
-          letter-spacing: -.01em;
-        }
+        .proj-links { display: flex; gap: 8px; }
+        .proj-link { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); text-decoration: none; border: 1px solid var(--border); padding: 4px 12px; border-radius: 2px; transition: color .15s, border-color .15s; }
+        .proj-link:hover { color: var(--rust); border-color: var(--gold); }
+        .proj-link.live { color: var(--rust); border-color: rgba(139,69,19,.3); }
 
-        .status-badge {
-          font-size: 9px;
-          padding: 3px 8px;
-          border-radius: 3px;
-          font-weight: 500;
-          letter-spacing: .04em;
-          white-space: nowrap;
-          flex-shrink: 0;
-        }
-        .status-live { background: rgba(34,197,94,.1); color: #4ade80; border: 1px solid rgba(34,197,94,.2); }
-        .status-building { background: rgba(251,191,36,.08); color: #fbbf24; border: 1px solid rgba(251,191,36,.15); }
-
-        .project-highlight {
-          font-size: 10px;
-          color: var(--accent);
-          margin-bottom: 8px;
-          letter-spacing: .03em;
-        }
-
-        .project-desc {
-          font-size: 12px;
-          color: var(--muted);
-          line-height: 1.7;
-          margin-bottom: 12px;
-        }
-
-        .project-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
-        .project-tag {
-          font-size: 9px; color: var(--muted);
-          border: 1px solid var(--border); padding: 3px 8px; border-radius: 3px;
-          background: var(--surface2);
-        }
-
-        .project-links { display: flex; gap: 10px; }
-        .project-link {
-          font-size: 11px; color: var(--muted); text-decoration: none;
-          border: 1px solid var(--border); padding: 5px 12px; border-radius: 4px;
-          transition: color .15s, border-color .15s;
-        }
-        .project-link:hover { color: var(--accent); border-color: var(--accent); }
-        .project-link-live { color: var(--accent); border-color: rgba(255,77,109,.3); }
+        .status-badge { font-family: 'IBM Plex Mono', monospace; font-size: 8px; padding: 3px 8px; border-radius: 2px; font-weight: 500; letter-spacing: .04em; white-space: nowrap; flex-shrink: 0; }
+        .status-live { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .status-building { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 
         /* Competencies */
-        .competencies {
-          margin-top: 2.5rem;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          padding: 1.5rem;
-        }
-        .comp-title {
-          font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
-          color: var(--text); letter-spacing: .04em; text-transform: uppercase;
-          margin-bottom: 1rem;
-        }
+        .comp-section { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 20px 24px; }
+        .comp-title { font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 500; color: var(--dim); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 14px; }
         .comp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .comp-item {
-          background: var(--surface2); border: 1px solid var(--border);
-          border-radius: 6px; padding: 10px; text-align: center;
-          font-size: 11px; color: var(--muted);
-        }
+        .comp-item { background: var(--cream2); border: 1px solid var(--border); border-radius: 3px; padding: 9px 10px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); }
       `}</style>
 
-      {/* ── SIDEBAR ── */}
+      {/* SIDEBAR */}
       <aside className="sidebar">
         <div>
           <div className="avatar">GJ</div>
-          <div style={{ marginTop: '12px' }}>
-            <div className="sidebar-name">Gbemiga John</div>
-            <div className="sidebar-role">Senior DevOps Engineer</div>
+          <div style={{ marginTop: '10px' }}>
+            <div className="s-name">Gbemiga John</div>
+            <div className="s-role">Senior DevOps Engineer</div>
           </div>
         </div>
 
         <div className="divider" />
 
         <div>
-          <div className="sidebar-label">Navigation</div>
-          <Link href="/" className="nav-item">home</Link>
+          <div className="s-label">Navigation</div>
+          <Link href="/"         className="nav-item">home</Link>
           <Link href="/projects" className="nav-item active">projects</Link>
           <a href="/#experience" className="nav-item">experience</a>
-          <a href="/#skills" className="nav-item">skills</a>
-          <Link href="/contact" className="nav-item">contact</Link>
+          <a href="/#skills"     className="nav-item">skills</a>
+          <Link href="/contact"  className="nav-item">contact</Link>
         </div>
 
         <div className="divider" />
 
         <div>
-          <div className="sidebar-label">Expertise</div>
-          {['Kubernetes', 'Terraform', 'GitHub Actions', 'AWS', 'Docker', 'ArgoCD', 'Prometheus', 'Ansible', 'GCP', 'Azure'].map(t => (
+          <div className="s-label">Expertise</div>
+          {['Kubernetes','Terraform','GitHub Actions','AWS','Docker','ArgoCD','Prometheus','Ansible','GCP','Azure','MLOps','Python'].map(t => (
             <span key={t} className="stack-tag">{t}</span>
           ))}
         </div>
@@ -278,67 +154,95 @@ export default async function ProjectsPage() {
         <div className="divider" />
 
         <div>
-          <div className="sidebar-label">Currently</div>
-          <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: '1.7' }}>
-            DevOps Specialist<br />
-            <span style={{ color: 'var(--accent)' }}>Gov. of Alberta (Affinity)</span><br />
-            Edmonton, AB · Oct 2023–
-          </div>
+          <div className="s-label">Currently</div>
+          <div className="curr-title">DevOps Specialist</div>
+          <div className="curr-co">Gov. of Alberta (Affinity)</div>
+          <div className="curr-date">Edmonton, AB · Oct 2023–</div>
         </div>
       </aside>
 
-      {/* ── MAIN ── */}
+      {/* MAIN */}
       <main className="main">
-        <div className="page-header">
+        <nav className="top-nav">
+          <div className="nav-links">
+            <Link href="/"         className="nav-link">home</Link>
+            <Link href="/projects" className="nav-link active">projects</Link>
+            <a href="/#experience" className="nav-link">experience</a>
+            <a href="/#skills"     className="nav-link">skills</a>
+            <Link href="/contact"  className="nav-link">contact</Link>
+          </div>
+          <a href="mailto:GbemigaOgele@gmail.com" className="nav-cta">HIRE ME</a>
+        </nav>
+
+        <div className="content">
           <div className="page-tag">// projects</div>
-          <h1 className="page-title">Real infra.<br /><em>Real deployments.</em></h1>
+          <h1 className="page-h1">Real infra.<br /><em>Real deployments.</em></h1>
           <p className="page-sub">
             Three end-to-end projects covering the full DevOps stack — CI/CD, containers,
             Kubernetes, IaC and cloud observability. All code is on GitHub.
           </p>
-        </div>
 
-        <div className="projects-grid">
-          {featuredProjects.map(p => (
-            <div key={p.id} className="project-card">
-              <div className="project-number">{p.number}</div>
-              <div className="project-body">
-                <div className="project-top">
-                  <span className="project-title">{p.title}</span>
-                  <span className={`status-badge status-${p.status}`}>
-                    {p.status === 'live' ? 'live' : 'in progress'}
-                  </span>
-                </div>
-                <div className="project-highlight">{p.highlight}</div>
-                <p className="project-desc">{p.description}</p>
-                <div className="project-tags">
-                  {p.tags.map(t => <span key={t} className="project-tag">{t}</span>)}
-                </div>
-                <div className="project-links">
-                  <a href={p.github} target="_blank" rel="noreferrer" className="project-link">
-                    github →
-                  </a>
-                  {p.live && (
-                    <a href={p.live} target="_blank" rel="noreferrer" className="project-link project-link-live">
-                      live demo →
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="competencies">
-          <div className="comp-title">DevOps competencies demonstrated</div>
-          <div className="comp-grid">
+          <div className="projects-list">
             {[
-              'CI/CD Pipelines', 'Docker & Kubernetes', 'Terraform / IaC',
-              'GitOps / ArgoCD', 'Observability', 'Cloud (AWS/GCP/Azure)',
-              'Security & IAM', 'Auto-scaling', 'Incident Response',
-            ].map(c => (
-              <div key={c} className="comp-item">{c}</div>
+              {
+                num: '01',
+                title: 'DevOps Portfolio Site',
+                highlight: '3 containers · 0-downtime deploys',
+                desc: 'This site — full-stack Next.js + Express API, containerised with Docker, deployed via GitHub Actions CI/CD to AWS EC2 behind Nginx with auto-renewing TLS.',
+                tags: ['Next.js 14','Node.js','Docker','GitHub Actions','AWS EC2','Nginx','Let\'s Encrypt'],
+                github: 'https://github.com/gbengene/Devops-portfolio',
+                live: 'http://3.14.82.125',
+                status: 'live',
+              },
+              {
+                num: '02',
+                title: 'Microservices Platform',
+                highlight: 'GitOps · SLO dashboards · chaos tested',
+                desc: 'Kubernetes-based platform with 4 microservices, ArgoCD GitOps pipeline, Prometheus/Grafana observability stack and custom SLO dashboards. Chaos engineering tested.',
+                tags: ['Kubernetes','Helm','ArgoCD','Prometheus','Grafana','Docker','GitHub Actions'],
+                github: 'https://github.com/gbengene',
+                live: '',
+                status: 'building',
+              },
+              {
+                num: '03',
+                title: 'Cloud Infrastructure Automation',
+                highlight: '3 environments · IaC best practices',
+                desc: 'Reusable Terraform modules for AWS — VPC, EKS, RDS, ALB across dev/staging/prod. Vault secrets management, least-privilege IAM and Atlantis PR-driven infra review.',
+                tags: ['Terraform','AWS','HashiCorp Vault','IAM','Atlantis','Bash','Python'],
+                github: 'https://github.com/gbengene',
+                live: '',
+                status: 'building',
+              },
+            ].map(p => (
+              <div key={p.num} className="proj-card">
+                <div className="proj-num">{p.num}</div>
+                <div>
+                  <div className="proj-title">{p.title}</div>
+                  <div className="proj-highlight">{p.highlight}</div>
+                  <p className="proj-desc">{p.desc}</p>
+                  <div className="proj-tags">
+                    {p.tags.map(t => <span key={t} className="proj-tag">{t}</span>)}
+                  </div>
+                  <div className="proj-links">
+                    <a href={p.github} target="_blank" rel="noreferrer" className="proj-link">github →</a>
+                    {p.live && <a href={p.live} target="_blank" rel="noreferrer" className="proj-link live">live →</a>}
+                  </div>
+                </div>
+                <span className={`status-badge status-${p.status}`}>
+                  {p.status === 'live' ? 'live' : 'in progress'}
+                </span>
+              </div>
             ))}
+          </div>
+
+          <div className="comp-section">
+            <div className="comp-title">DevOps competencies demonstrated</div>
+            <div className="comp-grid">
+              {['CI/CD Pipelines','Docker & Kubernetes','Terraform / IaC','GitOps / ArgoCD','Observability','Cloud (AWS/GCP/Azure)','Security & IAM','Auto-scaling','Incident Response'].map(c => (
+                <div key={c} className="comp-item">{c}</div>
+              ))}
+            </div>
           </div>
         </div>
       </main>

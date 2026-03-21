@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: gbengene/portfolio-backend:latest
+    image: gbengene007/portfolio-backend:latest
     build:
       context: ./backend
       target: runner
