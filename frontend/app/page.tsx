@@ -272,6 +272,50 @@ export default function Home() {
           padding: 3px 0; border-bottom: 1px solid var(--border); line-height: 1.5;
         }
         .skill-item:last-child { border-bottom: none; }
+
+        /* ── TABLET ── */
+        @media (max-width: 1024px) {
+          .skills-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ── MOBILE ── */
+        @media (max-width: 768px) {
+          .root { grid-template-columns: 1fr; }
+          .sidebar {
+            position: relative;
+            height: auto;
+            overflow-y: visible;
+            padding: 1.5rem 1.25rem;
+          }
+          .top-nav { padding: 10px 16px; }
+          .nav-links { gap: 10px; flex-wrap: wrap; }
+          .nav-link { font-size: 12px; padding: 12px 4px; }
+          .nav-cta { font-size: 11px; padding: 10px 18px; }
+          .hero { padding: 20px 16px; }
+          .hero-tag { font-size: 10px; }
+          .hero-h1 { font-size: clamp(24px, 6vw, 32px); }
+          .hero-p { font-size: 15px; }
+          .hero-btns { flex-direction: column; }
+          .btn-p, .btn-s { font-size: 12px; padding: 14px 24px; text-align: center; }
+          .metrics { grid-template-columns: repeat(3, 1fr); }
+          .content { padding: 16px 16px 24px; }
+          .exp-card { grid-template-columns: 1fr; }
+          .exp-period { text-align: left; order: -1; font-size: 10px; margin-bottom: 4px; }
+          .skills-grid { grid-template-columns: 1fr; }
+          .s-role, .s-label, .open-pill { font-size: 11px; }
+          .s-contact { font-size: 12px; }
+          .skill-row { font-size: 11px; }
+          .cert-name, .edu-deg { font-size: 11px; }
+          .cert-iss, .edu-school { font-size: 10px; }
+          .section-title { font-size: 10px; }
+          .exp-title { font-size: 16px; }
+          .exp-company { font-size: 10px; }
+          .exp-summary { font-size: 14px; }
+          .exp-tag { font-size: 9px; padding: 3px 8px; }
+          .skill-group-label { font-size: 10px; }
+          .skill-item { font-size: 12px; }
+          .metric-l { font-size: 9px; }
+        }
       `}</style>
 
       {/* ── SIDEBAR ── */}

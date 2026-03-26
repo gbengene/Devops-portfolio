@@ -238,6 +238,36 @@ export default function ContactPage() {
           transition: color .15s;
         }
         .alt-link:hover { color: var(--rust); }
+
+        /* ── MOBILE ── */
+        @media (max-width: 768px) {
+          .root { grid-template-columns: 1fr; }
+          .sidebar {
+            position: relative;
+            height: auto;
+            overflow-y: visible;
+            padding: 1.5rem 1.25rem;
+          }
+          .top-nav { padding: 10px 16px; }
+          .nav-links { gap: 10px; flex-wrap: wrap; }
+          .nav-link { font-size: 12px; padding: 12px 4px; }
+          .nav-cta { font-size: 11px; padding: 10px 18px; }
+          .contact-body { padding: 24px 16px; }
+          .contact-card { padding: 24px 20px; }
+          .contact-tag { font-size: 10px; }
+          .contact-h1 { font-size: 26px; }
+          .contact-sub { font-size: 15px; }
+          .field label { font-size: 10px; }
+          .field input, .field textarea { font-size: 16px; padding: 12px 14px; }
+          .submit-btn { font-size: 12px; padding: 16px; }
+          .alt-contact { flex-direction: column; align-items: center; gap: 10px; }
+          .alt-link { font-size: 12px; }
+          .s-role, .s-label, .open-pill { font-size: 11px; }
+          .s-contact { font-size: 12px; }
+          .skill-row { font-size: 11px; }
+          .cert-name, .edu-deg { font-size: 11px; }
+          .cert-iss, .edu-school { font-size: 10px; }
+        }
       `}</style>
 
       {/* SIDEBAR */}

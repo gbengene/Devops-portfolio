@@ -119,6 +119,47 @@ export default async function ProjectsPage() {
         .comp-title { font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 500; color: var(--dim); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 14px; }
         .comp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .comp-item { background: var(--cream2); border: 1px solid var(--border); border-radius: 3px; padding: 9px 10px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); }
+
+        /* ── TABLET ── */
+        @media (max-width: 1024px) {
+          .comp-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ── MOBILE ── */
+        @media (max-width: 768px) {
+          .root { grid-template-columns: 1fr; }
+          .sidebar {
+            position: relative;
+            height: auto;
+            overflow-y: visible;
+            padding: 1.5rem 1.25rem;
+          }
+          .top-nav { padding: 10px 16px; }
+          .nav-links { gap: 10px; flex-wrap: wrap; }
+          .nav-link { font-size: 12px; padding: 12px 4px; }
+          .nav-cta { font-size: 11px; padding: 10px 18px; }
+          .content { padding: 20px 16px; }
+          .page-tag { font-size: 10px; }
+          .page-h1 { font-size: clamp(24px, 6vw, 32px); }
+          .page-sub { font-size: 15px; }
+          .proj-card { grid-template-columns: 1fr; gap: 8px; padding: 14px 16px; }
+          .proj-num { display: none; }
+          .status-badge { order: -1; align-self: flex-start; }
+          .proj-title { font-size: 17px; }
+          .proj-highlight { font-size: 10px; }
+          .proj-desc { font-size: 14px; }
+          .proj-tag { font-size: 9px; padding: 3px 8px; }
+          .proj-link { font-size: 11px; padding: 8px 16px; }
+          .comp-grid { grid-template-columns: repeat(2, 1fr); }
+          .comp-item { font-size: 11px; padding: 10px 8px; }
+          .comp-title { font-size: 10px; }
+          .s-role, .s-label { font-size: 11px; }
+          .nav-item { font-size: 12px; padding: 10px 8px; }
+          .stack-tag { font-size: 10px; padding: 4px 8px; }
+          .curr-title { font-size: 12px; }
+          .curr-co { font-size: 11px; }
+          .curr-date { font-size: 10px; }
+        }
       `}</style>
 
       {/* SIDEBAR */}
