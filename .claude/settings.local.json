@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/gbemi/AppData/Local/Temp/**)",
+      "Bash(rm -f \"C:\\\\Users\\\\gbemi\\\\.claude\\\\plugins\\\\marketplaces\\\\playwright-skill\\\\skills\\\\playwright-skill\\\\temp-verify.js\" \"C:\\\\Users\\\\gbemi\\\\.claude\\\\plugins\\\\marketplaces\\\\playwright-skill\\\\skills\\\\playwright-skill\\\\temp-verify2.js\")",
+      "Bash(taskkill //F //IM node.exe)"
+    ]
+  }
+}
