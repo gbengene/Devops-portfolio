@@ -1,0 +1,44 @@
+---
+# ArgoCD Project — boutique
+# Scopes what this project can deploy and where.
+# Prevents accidental deployment to wrong namespaces.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: boutique
+  namespace: argocd
+spec:
+  description: "Online Boutique SRE Platform — dev/staging/prod"
+
+  # Only allow deployments from these repos
+  sourceRepos:
+    - https://github.com/GoogleCloudPlatform/microservices-demo
+    - https://prometheus-community.github.io/helm-charts
+    - '*'   # remove this after you fork the repo to your own GitHub
+
+  # Only allow deployments to these namespaces
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: boutique-dev
+    - server: https://kubernetes.default.svc
+      namespace: boutique-staging
+    - server: https://kubernetes.default.svc
+      namespace: boutique-prod
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
+
+  # Restrict which Kubernetes resources can be created
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: Namespace
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota   # prevent quota manipulation
+
+  # Sync windows — prevent prod deployments on weekends
+  syncWindows:
+    - kind: deny
+      schedule: '0 0 * * 6,0'   # Saturday and Sunday
+      duration: 48h
+      namespaces:
+        - boutique-prod

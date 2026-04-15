@@ -1,0 +1,94 @@
+---
+# ArgoCD Application — kube-prometheus-stack
+# Manages the full observability stack: Prometheus, Grafana, Alertmanager
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"   # deploy before boutique
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "61.9.0"            # pinned — change with intent
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        grafana:
+          adminPassword: sre-boutique-2026
+          defaultDashboardsEnabled: true
+          sidecar:
+            dashboards:
+              enabled: true
+              searchNamespace: ALL       # picks up dashboards from any namespace
+          grafana.ini:
+            auth.anonymous:
+              enabled: false
+
+        prometheus:
+          prometheusSpec:
+            # scrape all ServiceMonitors across all namespaces
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleNamespaceSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            retention: 15d
+            resources:
+              requests:
+                memory: 512Mi
+              limits:
+                memory: 1Gi
+
+        alertmanager:
+          alertmanagerSpec:
+            resources:
+              requests:
+                memory: 128Mi
+          config:
+            global:
+              resolve_timeout: 5m
+            route:
+              group_by: ['alertname', 'namespace']
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 4h
+              receiver: 'remediation-webhook'
+              routes:
+                - match:
+                    severity: critical
+                  receiver: 'remediation-webhook'
+            receivers:
+              - name: 'remediation-webhook'
+                webhook_configs:
+                  - url: 'http://remediation-webhook.monitoring.svc.cluster.local:5001/alert'
+                    send_resolved: true
+
+        # Reduce resource footprint for local kind cluster
+        kubeStateMetrics:
+          enabled: true
+          serviceMonitor:
+            selectorOverride:
+              app.kubernetes.io/name: kube-state-metrics
+              app.kubernetes.io/instance: monitoring
+        nodeExporter:
+          enabled: true
+        kubeEtcd:
+          enabled: false   # not accessible in kind
+        kubeScheduler:
+          enabled: false   # not accessible in kind
+        kubeControllerManager:
+          enabled: false   # not accessible in kind
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

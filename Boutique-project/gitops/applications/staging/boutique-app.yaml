@@ -1,0 +1,62 @@
+---
+# ArgoCD Application — Online Boutique (staging)
+# Sync is NOT automated — requires manual promotion from dev.
+# This models a real team workflow: dev auto-deploys, staging is gated.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: boutique-staging
+  namespace: argocd
+  labels:
+    environment: staging
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: boutique
+  source:
+    repoURL: https://github.com/GoogleCloudPlatform/microservices-demo
+    path: helm-chart
+    targetRevision: main
+    helm:
+      releaseName: boutique
+      values: |
+        frontend:
+          replicas: 2
+
+        cartService:
+          replicas: 2
+
+        checkoutService:
+          replicas: 2
+
+        loadGenerator:
+          enabled: true
+          args:
+            - "--users=25"
+            - "--spawn-rate=5"
+
+        global:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: boutique-staging
+  syncPolicy:
+    # ── MANUAL PROMOTION ──────────────────────────────────
+    # No automated sync. To promote from dev → staging:
+    #   argocd app sync boutique-staging
+    # or click "Sync" in the ArgoCD UI.
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 15s
+        maxDuration: 5m
+        factor: 2

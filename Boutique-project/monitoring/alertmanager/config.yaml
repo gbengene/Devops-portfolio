@@ -1,0 +1,62 @@
+---
+# Alertmanager configuration
+# Routes alerts to the auto-remediation webhook.
+# For production: add Slack/PagerDuty receivers here.
+global:
+  resolve_timeout: 5m
+  # slack_api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+
+route:
+  group_by: ['alertname', 'namespace', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: remediation-webhook
+
+  routes:
+    # Critical alerts — hit webhook immediately, shorter repeat
+    - matchers:
+        - severity = critical
+      receiver: remediation-webhook
+      group_wait: 10s
+      repeat_interval: 30m
+      continue: true   # also send to default receiver
+
+    # Warning alerts — informational only, no remediation
+    - matchers:
+        - severity = warning
+      receiver: slack-warnings   # wire to Slack in production
+      group_wait: 60s
+
+receivers:
+  # Auto-remediation webhook (Python Flask app in the cluster)
+  - name: remediation-webhook
+    webhook_configs:
+      - url: 'http://remediation-webhook.monitoring.svc.cluster.local:5001/alert'
+        send_resolved: true
+        http_config:
+          follow_redirects: true
+        max_alerts: 10
+
+  # Slack receiver — fill in your webhook URL for production
+  - name: slack-warnings
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/REPLACE/WITH/YOUR_WEBHOOK'
+        channel: '#devops-alerts'
+        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        text: |
+          *Severity:* {{ .CommonLabels.severity }}
+          *Namespace:* {{ .CommonLabels.namespace }}
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+inhibit_rules:
+  # If a critical alert fires, suppress the matching warning alert
+  - source_matchers:
+      - severity = critical
+    target_matchers:
+      - severity = warning
+    equal: ['alertname', 'namespace']

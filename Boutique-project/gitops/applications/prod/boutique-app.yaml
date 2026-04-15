@@ -1,0 +1,54 @@
+---
+# ArgoCD Application — Online Boutique (prod)
+# Manual sync only. Requires explicit human approval.
+# On AWS: this will target the EKS prod cluster.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: boutique-prod
+  namespace: argocd
+  labels:
+    environment: prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+    # Notifications annotation — wire to Slack/email for prod sync events
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: devops-alerts
+spec:
+  project: boutique
+  source:
+    repoURL: https://github.com/GoogleCloudPlatform/microservices-demo
+    path: helm-chart
+    targetRevision: main          # pin to a release tag before prod deploy
+    helm:
+      releaseName: boutique
+      values: |
+        frontend:
+          replicas: 3
+
+        cartService:
+          replicas: 3
+
+        checkoutService:
+          replicas: 2
+
+        loadGenerator:
+          # Disabled in prod — real users provide traffic
+          enabled: false
+
+        global:
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+
+  destination:
+    server: https://kubernetes.default.svc   # replace with EKS API endpoint
+    namespace: boutique-prod
+  syncPolicy:
+    # ── PROD: FULLY MANUAL ────────────────────────────────
+    # Never auto-sync prod. Every prod deployment is a human decision.
+    syncOptions:
+      - CreateNamespace=true

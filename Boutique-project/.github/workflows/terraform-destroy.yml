@@ -1,0 +1,100 @@
+###############################################################
+# Workflow: Destroy
+# Manual trigger only — destroys dev or prod cluster
+# Prod destroy requires the same approval gate as prod apply
+# IMPORTANT: This is destructive — costs stop, data is lost
+###############################################################
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to destroy"
+        required: true
+        type: choice
+        options: [dev, prod]
+      confirm:
+        description: "Type DESTROY-DEV or DESTROY-PROD to confirm"
+        required: true
+      reason:
+        description: "Reason for destroying (for audit trail)"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: "1.8.5"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  preflight:
+    name: Preflight Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify confirmation text
+        run: |
+          EXPECTED="DESTROY-${{ github.event.inputs.environment }}"
+          EXPECTED_UPPER=$(echo "$EXPECTED" | tr '[:lower:]' '[:upper:]')
+          if [ "${{ github.event.inputs.confirm }}" != "$EXPECTED_UPPER" ]; then
+            echo "::error::Confirmation must be exactly: ${EXPECTED_UPPER}"
+            exit 1
+          fi
+          echo "Confirmation accepted for ${{ github.event.inputs.environment }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+
+  ###############################################################
+  # Approval gate for PROD only
+  ###############################################################
+  await-approval:
+    name: Awaiting Approval (prod only)
+    runs-on: ubuntu-latest
+    needs: preflight
+    environment: ${{ github.event.inputs.environment == 'prod' && 'prod' || 'dev' }}
+    steps:
+      - name: Approval granted
+        run: echo "Destroy approved for ${{ github.event.inputs.environment }}"
+
+  destroy:
+    name: Terraform Destroy — ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: await-approval
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ github.event.inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: |
+          terraform destroy \
+            -var="grafana_admin_password=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
+            -auto-approve \
+            -no-color
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Infrastructure Destroyed" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ github.event.inputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Destroyed by | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ github.event.inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Time | $(date -u) |" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,96 @@
+###############################################################
+# Workflow: Deploy — DEV
+# Triggers: merge to main (terraform/environments/dev/** changes)
+# Behaviour: auto-applies with no approval gate
+# Environment: dev (GitHub Environment with dev secrets)
+###############################################################
+name: Deploy — dev
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/environments/dev/**"
+      - "terraform/modules/**"
+      - ".github/workflows/terraform-dev.yml"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        default: "apply"
+        type: choice
+        options: [apply, plan]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  TF_VERSION: "1.8.5"
+  AWS_REGION: "us-east-1"
+  TF_WORKING_DIR: terraform/environments/dev
+
+jobs:
+  deploy-dev:
+    name: Terraform Apply — dev
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var="grafana_admin_password=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
+            -out=tfplan \
+            -no-color
+
+      - name: Terraform Apply
+        if: github.event_name == 'push' || github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get cluster outputs
+        if: success()
+        id: outputs
+        run: |
+          echo "cluster_name=$(terraform output -raw cluster_name)" >> $GITHUB_OUTPUT
+          echo "configure_kubectl=$(terraform output -raw configure_kubectl)" >> $GITHUB_OUTPUT
+
+      - name: Update kubeconfig and verify cluster
+        if: success()
+        run: |
+          aws eks update-kubeconfig --name ${{ steps.outputs.outputs.cluster_name }} --region ${{ env.AWS_REGION }}
+          kubectl get nodes
+          kubectl get pods -A
+
+      - name: Post summary
+        if: always()
+        run: |
+          echo "## Dev Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | dev |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cluster | ${{ steps.outputs.outputs.cluster_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Region | ${{ env.AWS_REGION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY

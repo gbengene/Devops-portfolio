@@ -1,0 +1,71 @@
+---
+# ArgoCD Application — Online Boutique (dev)
+# Points to the local Helm chart wrapper in this repo.
+# For local development: source is the local path.
+# For AWS: change repoURL to your GitHub repo URL.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: boutique-dev
+  namespace: argocd
+  labels:
+    environment: dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    # ── LOCAL MODE ──────────────────────────────────────────
+    # When running locally, ArgoCD uses the chart from this repo.
+    # Change repoURL to your GitHub URL when deploying to AWS.
+    repoURL: https://github.com/GoogleCloudPlatform/microservices-demo
+    path: helm-chart
+    targetRevision: main
+    helm:
+      releaseName: boutique
+      values: |
+        # ── Dev environment overrides ──────────────────────
+        frontend:
+          replicas: 1
+
+        cartService:
+          replicas: 1
+
+        checkoutService:
+          replicas: 1
+
+        # Load generator — sends continuous traffic
+        # Critical for SLO dashboard to show real data
+        loadGenerator:
+          enabled: true
+          # Simulates ~10 concurrent users
+          args:
+            - "--users=10"
+            - "--spawn-rate=2"
+
+        # Resource limits — enforced by OPA policy
+        # All services must declare these (policy will block if missing)
+        global:
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: boutique-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true    # auto-heals drift — key SRE demo feature
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        maxDuration: 3m
+        factor: 2

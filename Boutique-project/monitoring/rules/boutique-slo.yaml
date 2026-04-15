@@ -1,0 +1,142 @@
+---
+# PrometheusRule — Online Boutique SLO Alerts
+# SLO: 99.9% availability over a 30-day rolling window
+# Error budget: 43.2 minutes of downtime per 30 days
+#
+# Three alert tiers based on burn rate (Google SRE Book, Chapter 5):
+#   - Page immediately:  14x burn rate (burns 1hr budget in 5 min)
+#   - Page (less urgent): 6x burn rate (burns 1hr budget in 10 min)
+#   - Warn only:          1x burn rate (on track to exhaust budget)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: boutique-slo-rules
+  namespace: monitoring
+  labels:
+    release: monitoring   # must match the Helm release label
+spec:
+  groups:
+    # ── Availability SLO ─────────────────────────────────────────────────────
+    - name: boutique.slo.availability
+      interval: 30s
+      rules:
+        # Current error rate — fraction of requests that are 5xx
+        - record: boutique:http_error_rate:ratio_rate5m
+          expr: |
+            sum(rate(http_requests_total{namespace="boutique-dev", status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{namespace="boutique-dev"}[5m]))
+
+        - record: boutique:http_error_rate:ratio_rate30m
+          expr: |
+            sum(rate(http_requests_total{namespace="boutique-dev", status_code=~"5.."}[30m]))
+            /
+            sum(rate(http_requests_total{namespace="boutique-dev"}[30m]))
+
+        - record: boutique:http_error_rate:ratio_rate1h
+          expr: |
+            sum(rate(http_requests_total{namespace="boutique-dev", status_code=~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total{namespace="boutique-dev"}[1h]))
+
+        - record: boutique:http_error_rate:ratio_rate6h
+          expr: |
+            sum(rate(http_requests_total{namespace="boutique-dev", status_code=~"5.."}[6h]))
+            /
+            sum(rate(http_requests_total{namespace="boutique-dev"}[6h]))
+
+        # ── CRITICAL: Fast burn — page immediately ────────────────────────
+        - alert: BoutiqueSLOFastBurn
+          expr: |
+            boutique:http_error_rate:ratio_rate5m  > (14 * 0.001)
+            and
+            boutique:http_error_rate:ratio_rate1h  > (14 * 0.001)
+          for: 2m
+          labels:
+            severity: critical
+            team: platform
+            slo: availability
+          annotations:
+            summary: "CRITICAL: Boutique error budget burning fast"
+            description: |
+              Error rate is {{ $value | humanizePercentage }} over the last 5m.
+              At this burn rate the 30-day error budget will be exhausted in
+              {{ div 1 (mul $value 720) | humanizeDuration }}.
+              Immediate action required.
+            runbook_url: "https://github.com/youruser/boutique-project/blob/main/docs/runbooks/high-error-rate.md"
+
+        # ── WARNING: Slow burn — page during business hours ───────────────
+        - alert: BoutiqueSLOSlowBurn
+          expr: |
+            boutique:http_error_rate:ratio_rate30m > (6 * 0.001)
+            and
+            boutique:http_error_rate:ratio_rate6h  > (6 * 0.001)
+          for: 15m
+          labels:
+            severity: warning
+            team: platform
+            slo: availability
+          annotations:
+            summary: "WARNING: Boutique error budget burn rate elevated"
+            description: |
+              Error rate is {{ $value | humanizePercentage }} over 30m.
+              Current burn rate will exhaust the monthly error budget
+              if sustained. Investigate within the hour.
+            runbook_url: "https://github.com/youruser/boutique-project/blob/main/docs/runbooks/high-error-rate.md"
+
+    # ── Latency SLO ──────────────────────────────────────────────────────────
+    - name: boutique.slo.latency
+      interval: 30s
+      rules:
+        # SLO: 95% of requests complete in < 500ms
+        - record: boutique:http_latency_p95:rate5m
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace="boutique-dev"}[5m]))
+              by (le)
+            )
+
+        - alert: BoutiqueHighLatency
+          expr: boutique:http_latency_p95:rate5m > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+            slo: latency
+          annotations:
+            summary: "WARNING: Boutique p95 latency exceeds 500ms SLO"
+            description: |
+              p95 latency is {{ $value | humanizeDuration }} (SLO: 500ms).
+              Check cartservice and checkoutservice for slow DB queries.
+
+    # ── Pod health alerts ─────────────────────────────────────────────────────
+    - name: boutique.pods
+      rules:
+        - alert: BoutiquePodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="boutique-dev"}[15m]) > 3
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash-looping"
+            description: |
+              Container {{ $labels.container }} in pod {{ $labels.pod }}
+              has restarted {{ $value }} times in the last 15 minutes.
+              Auto-remediation webhook has been notified.
+
+        - alert: BoutiqueDeploymentDegraded
+          expr: |
+            (kube_deployment_status_replicas_available{namespace="boutique-dev"}
+            /
+            kube_deployment_status_replicas{namespace="boutique-dev"}) < 0.5
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} is degraded"
+            description: |
+              Only {{ $value | humanizePercentage }} of desired pods are available.
+              Auto-remediation webhook triggered.

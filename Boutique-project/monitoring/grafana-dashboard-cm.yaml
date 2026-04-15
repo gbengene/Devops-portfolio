@@ -1,0 +1,164 @@
+---
+# ConfigMap — Boutique SLO Grafana Dashboard
+# Uses pod-availability-based SLOs (boutique app does not expose HTTP metrics)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: boutique-slo-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"   # sidecar watches for this label
+data:
+  boutique-slo.json: |
+    {
+      "title": "SRE Boutique — SLO Dashboard",
+      "uid": "boutique-slo-001",
+      "tags": ["slo", "boutique", "sre"],
+      "timezone": "browser",
+      "refresh": "30s",
+      "time": { "from": "now-1h", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Availability SLO — Current (Target: 99.9%)",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "targets": [{
+            "expr": "avg(kube_deployment_status_replicas_available{namespace=\"boutique-dev\"} / kube_deployment_status_replicas{namespace=\"boutique-dev\"}) * 100",
+            "legendFormat": "Availability %"
+          }],
+          "options": {
+            "colorMode": "background",
+            "thresholds": {
+              "steps": [
+                { "color": "red",    "value": 0 },
+                { "color": "yellow", "value": 99 },
+                { "color": "green",  "value": 99.9 }
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "decimals": 3,
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Pods Healthy (boutique-dev)",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "targets": [{
+            "expr": "sum(kube_deployment_status_replicas_available{namespace=\"boutique-dev\"})",
+            "legendFormat": "Healthy Pods"
+          }],
+          "options": {
+            "colorMode": "background",
+            "thresholds": {
+              "steps": [
+                { "color": "red",    "value": 0 },
+                { "color": "yellow", "value": 8 },
+                { "color": "green",  "value": 12 }
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": { "unit": "short", "decimals": 0 }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Pod Restarts (last 15m)",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "targets": [{
+            "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"boutique-dev\"}[15m]))",
+            "legendFormat": "Restarts"
+          }],
+          "options": {
+            "colorMode": "background",
+            "thresholds": {
+              "steps": [
+                { "color": "green",  "value": 0 },
+                { "color": "yellow", "value": 1 },
+                { "color": "red",    "value": 3 }
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": { "unit": "short", "decimals": 0 }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Degraded Deployments",
+          "type": "stat",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "targets": [{
+            "expr": "count(kube_deployment_status_replicas_available{namespace=\"boutique-dev\"} < kube_deployment_status_replicas{namespace=\"boutique-dev\"}) or vector(0)",
+            "legendFormat": "Degraded"
+          }],
+          "options": {
+            "colorMode": "background",
+            "thresholds": {
+              "steps": [
+                { "color": "green", "value": 0 },
+                { "color": "red",   "value": 1 }
+              ]
+            }
+          },
+          "fieldConfig": {
+            "defaults": { "unit": "short", "decimals": 0 }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Pod Availability Over Time — boutique-dev",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+          "targets": [{
+            "expr": "kube_deployment_status_replicas_available{namespace=\"boutique-dev\"} / kube_deployment_status_replicas{namespace=\"boutique-dev\"} * 100",
+            "legendFormat": "{{ deployment }}"
+          }],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "custom": { "lineWidth": 2 }
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Pod Availability Count — boutique-dev",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+          "targets": [{
+            "expr": "sum by (deployment) (kube_deployment_status_replicas_available{namespace=\"boutique-dev\"})",
+            "legendFormat": "{{ deployment }}"
+          }],
+          "fieldConfig": {
+            "defaults": { "unit": "short", "custom": { "lineWidth": 2 } }
+          }
+        },
+        {
+          "id": 7,
+          "title": "Pod Restarts Over Time — boutique-dev",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+          "targets": [
+            {
+              "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"boutique-dev\"}[5m])",
+              "legendFormat": "{{ pod }}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "short" }
+          }
+        }
+      ]
+    }

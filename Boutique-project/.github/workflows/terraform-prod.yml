@@ -1,0 +1,203 @@
+###############################################################
+# Workflow: Deploy — PROD
+# Triggers: manual workflow_dispatch ONLY
+# Approval gate: GitHub Environment "prod" requires
+#                designated reviewers before apply runs
+#
+# Flow:
+#   1. Plan runs immediately — no approval needed
+#   2. Plan output posted as job summary
+#   3. Apply job waits for GitHub Environment approval
+#   4. Designated reviewers approve/reject in GitHub UI
+#   5. Apply runs only after approval
+###############################################################
+name: Deploy — prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY-PROD to confirm you want to apply to production"
+        required: true
+      reason:
+        description: "Reason for this deployment (for audit trail)"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  TF_VERSION: "1.8.5"
+  AWS_REGION: "us-east-1"
+  TF_WORKING_DIR: terraform/environments/prod
+
+jobs:
+  ###############################################################
+  # Safety check — abort if confirmation text is wrong
+  ###############################################################
+  preflight:
+    name: Preflight Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "DEPLOY-PROD" ]; then
+            echo "::error::Confirmation text does not match. You must type DEPLOY-PROD exactly."
+            exit 1
+          fi
+          echo "Confirmation accepted."
+          echo "Deployment reason: ${{ github.event.inputs.reason }}"
+          echo "Triggered by: ${{ github.actor }}"
+
+  ###############################################################
+  # Plan — runs immediately, no approval needed
+  ###############################################################
+  plan-prod:
+    name: Terraform Plan — prod
+    runs-on: ubuntu-latest
+    needs: preflight
+    environment: prod-plan
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    outputs:
+      plan_exitcode: ${{ steps.plan.outputs.exitcode }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          set +e
+          terraform plan \
+            -var="grafana_admin_password=${{ secrets.GRAFANA_ADMIN_PASSWORD }}" \
+            -out=tfplan \
+            -detailed-exitcode \
+            -no-color 2>&1 | tee plan-output.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+          set -e
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-prod
+          path: ${{ env.TF_WORKING_DIR }}/tfplan
+          retention-days: 1   # plan is only valid for the next apply
+
+      - name: Post plan summary
+        run: |
+          echo "## Terraform Plan — prod" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason:** ${{ github.event.inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          cat plan-output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if plan errored (exitcode 1)
+        if: steps.plan.outputs.exitcode == '1'
+        run: |
+          echo "::error::Terraform plan failed with errors"
+          exit 1
+
+  ###############################################################
+  # APPROVAL GATE
+  # This job uses the "prod" GitHub Environment.
+  # In GitHub: Settings → Environments → prod → Required reviewers
+  # Add the people who must approve before prod apply runs.
+  # The workflow pauses here until they approve.
+  ###############################################################
+  await-approval:
+    name: Awaiting Approval
+    runs-on: ubuntu-latest
+    needs: plan-prod
+    environment: prod     # <── THIS is the approval gate
+    if: needs.plan-prod.outputs.plan_exitcode != '1'
+
+    steps:
+      - name: Approval granted
+        run: |
+          echo "Production deployment approved by: ${{ github.actor }}"
+          echo "Proceeding with terraform apply..."
+
+  ###############################################################
+  # Apply — only runs after approval
+  ###############################################################
+  apply-prod:
+    name: Terraform Apply — prod
+    runs-on: ubuntu-latest
+    needs: [plan-prod, await-approval]
+    environment: prod
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Download approved plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-prod
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get cluster outputs
+        id: outputs
+        run: |
+          echo "cluster_name=$(terraform output -raw cluster_name)" >> $GITHUB_OUTPUT
+          echo "configure_kubectl=$(terraform output -raw configure_kubectl)" >> $GITHUB_OUTPUT
+
+      - name: Verify cluster
+        run: |
+          aws eks update-kubeconfig --name ${{ steps.outputs.outputs.cluster_name }} --region ${{ env.AWS_REGION }}
+          kubectl get nodes
+          kubectl get pods -A
+
+      - name: Post deployment summary
+        if: always()
+        run: |
+          echo "## Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | **prod** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cluster | ${{ steps.outputs.outputs.cluster_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Region | ${{ env.AWS_REGION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployed by | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ github.event.inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY

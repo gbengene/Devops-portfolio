@@ -1,0 +1,21 @@
+---
+# ServiceMonitor — scrapes Prometheus metrics from boutique-dev services
+# Prometheus operator picks this up via the release: kube-prometheus-stack label
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: boutique-frontend
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - boutique-dev
+  selector:
+    matchLabels:
+      app: frontend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
