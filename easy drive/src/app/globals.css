@@ -3,25 +3,94 @@
 @tailwind utilities;
 
 /* ── Design Tokens ──────────────────────────────────────────────────────────── */
+/*
+ * Derived from src/lib/theme.ts — DO NOT edit hex values here directly.
+ * Edit theme.ts first, then update these properties to match.
+ * Last synced: 2026-05-14 (DESIGN_SYSTEM.md v1.0)
+ */
 :root {
-  --color-primary:       #007A87;
-  --color-primary-dark:  #005F6B;
-  --color-primary-light: #E6F4F6;
-  --color-navy:          #0D2B55;
-  --color-navy-light:    #1A3F73;
-  --color-success:       #16A34A;
-  --color-warning:       #D97706;
-  --color-danger:        #DC2626;
+  /* Brand — theme.ts: colors.brand.primary
+     Use on light/navy backgrounds: web buttons, forms, links */
+  --color-primary:        #007A87;
+  /* theme.ts: colors.brand.primaryDark */
+  --color-primary-dark:   #005F6B;
+  /* theme.ts: colors.brand.primaryLight */
+  --color-primary-light:  #E6F4F6;
 
-  --radius-sm:  6px;
-  --radius-md:  8px;
-  --radius-lg:  12px;
-  --radius-xl:  16px;
+  /* theme.ts: colors.brand.accent
+     Use on dark/black backgrounds ONLY — hero CTAs, mobile tab active */
+  --color-accent:         #00C2D4;
+  /* theme.ts: colors.brand.accentDark */
+  --color-accent-dark:    #0099A8;
+
+  /* Navy — theme.ts: colors.navy.base */
+  --color-navy:           #0D2B55;
+  /* theme.ts: colors.navy.deep */
+  --color-navy-deep:      #081D3A;
+  /* theme.ts: colors.navy.light */
+  --color-navy-light:     #1A4080;
+
+  /* Semantic — theme.ts: colors.semantic.success */
+  --color-success:        #22C55E;
+  /* theme.ts: colors.semantic.warning */
+  --color-warning:        #F59E0B;
+  /* theme.ts: colors.semantic.danger */
+  --color-danger:         #EF4444;
+  /* theme.ts: colors.semantic.info */
+  --color-info:           #3B82F6;
+
+  /* Surface — theme.ts: colors.surface.default */
+  --surface-default:      #FFFFFF;
+  /* theme.ts: colors.surface.subtle */
+  --surface-subtle:       #F8FAFC;
+  /* theme.ts: colors.surface.card */
+  --surface-card:         #FFFFFF;
+  /* theme.ts: colors.surface.hero — full-bleed dark sections */
+  --surface-hero:         #0A0A0A;
+
+  /* Text — theme.ts: colors.text.primary */
+  --color-text-primary:   #0F172A;
+  /* theme.ts: colors.text.secondary */
+  --color-text-secondary: #334155;
+  /* theme.ts: colors.text.muted */
+  --color-text-muted:     #94A3B8;
+  /* theme.ts: colors.text.onDark */
+  --text-on-dark:         #F1F5F9;
+  /* theme.ts: colors.text.onAccent */
+  --text-on-accent:       #000000;
+
+  /* Borders — theme.ts: colors.border.light */
+  --color-border-light:   #E5E7EB;
+  /* theme.ts: colors.border.dark */
+  --color-border-dark:    rgba(255,255,255,0.10);
+  /* theme.ts: colors.border.darkStrong */
+  --color-border-dark-strong: rgba(255,255,255,0.25);
+  /* theme.ts: colors.border.accent */
+  --color-border-accent:  rgba(0,194,212,0.40);
+  /* theme.ts: colors.border.accentSubtle */
+  --color-border-accent-subtle: rgba(0,194,212,0.20);
+
+  /* Spacing — theme.ts: spacing.* */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   16px;
+  --space-lg:   24px;
+  --space-xl:   32px;
+  --space-2xl:  48px;
+  --space-3xl:  64px;
+
+  /* Radius — theme.ts: radius.* */
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
   --radius-full: 9999px;
 
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  /* Shadows — theme.ts: shadows.* */
+  --shadow-card:       0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-modal: 0 20px 60px rgba(0,0,0,0.18);
+  --shadow-modal:      0 20px 60px rgba(0,0,0,0.18);
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────────── */

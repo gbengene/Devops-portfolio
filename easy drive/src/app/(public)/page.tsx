@@ -1,160 +1,342 @@
 import Link from 'next/link'
-import { CheckCircle, Car, Shield, MapPin, DollarSign, Clock, ChevronDown, Users } from 'lucide-react'
+import Image from 'next/image'
+import { Shield, MapPin, DollarSign, Car, Clock, Users, ChevronDown } from 'lucide-react'
+import { colors } from '@/lib/theme'
+
+/* ── Data ───────────────────────────────────────────────────────────────────── */
+
+const counters = [
+  { number: '500+', label: 'Drivers served' },
+  { number: '120+', label: 'Cars listed' },
+  { number: '$340', label: 'Avg weekly host earnings' },
+  { number: '48 hr', label: 'Approval time' },
+]
+
+const testimonials = [
+  {
+    quote:
+      "I listed my old Corolla and made $1,100 last month while it sat in my driveway. Easiest income I've ever had.",
+    name: 'Maria T.',
+    city: 'Scarborough',
+    role: 'Host',
+    initials: 'MT',
+  },
+  {
+    quote:
+      "No credit check, no long lease. I picked up the car Tuesday and was delivering by Wednesday. That's how it should work.",
+    name: 'Kwame A.',
+    city: 'Brampton',
+    role: 'Renter',
+    initials: 'KA',
+  },
+  {
+    quote:
+      "The GPS and kill switch give me peace of mind. I don't worry about my car anymore.",
+    name: 'Amir S.',
+    city: 'Mississauga',
+    role: 'Host',
+    initials: 'AS',
+  },
+]
+
+const whyItems = [
+  { icon: Shield, title: 'Verified renters only', desc: 'Licence, identity, and gig account checks before every booking.' },
+  { icon: MapPin, title: 'GPS + kill switch', desc: 'Real-time tracking and remote disable on every vehicle.' },
+  { icon: DollarSign, title: 'Hosts keep 80%', desc: 'Weekly payouts to your bank. No hidden deductions.' },
+  { icon: Car, title: 'Delivery-ready', desc: 'Every listing carries commercial insurance for Ontario delivery work.' },
+  { icon: Clock, title: 'Week-to-week flex', desc: 'No 12-month leases. Renters book weekly, hosts pause anytime.' },
+  { icon: Users, title: 'Ontario registered', desc: 'Operated by GB Trade and Logistics Inc. — fully incorporated.' },
+]
+
+const platforms = ['Uber Eats', 'DoorDash', 'SkipTheDishes', 'Instacart']
+
+const howItWorksSteps = [
+  { step: '01', title: 'List or apply', desc: 'Hosts add photos, rates, and GPS hardware. Renters verify their licence and gig account.' },
+  { step: '02', title: '48-hour approval', desc: 'Our team reviews every submission and responds within two business days.' },
+  { step: '03', title: 'Book & confirm', desc: 'Renters request a vehicle. Hosts confirm and the week begins.' },
+  { step: '04', title: 'Earn every week', desc: 'Hosts receive 80% of the booking rate. Renters drive and earn on their chosen platform.' },
+]
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black text-white">
 
-      {/* ── Navigation ──────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <span className="text-xl font-bold text-navy">Easy<span className="text-primary">Drive</span></span>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden sm:block text-sm text-gray-500 hover:text-gray-900">
+      {/* ── Nav ─────────────────────────────────────────────────────────────── */}
+      <nav className="sticky top-0 z-50 bg-black/70 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <span className="text-xl font-black tracking-tight">
+            Easy<span style={{ color: colors.brand.accent }}>Drive</span>
+          </span>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className="hidden sm:block text-sm text-white/60 hover:text-white transition-colors"
+            >
               Sign in
             </Link>
-            <Link href="/browse" className="btn-secondary text-sm px-4" style={{ minWidth: 'auto', minHeight: 38 }}>
+            <Link
+              href="/browse"
+              className="text-sm font-semibold px-4 py-2 rounded-full border border-white/25 text-white hover:border-white/60 transition-colors"
+            >
               Find a car
             </Link>
-            <Link href="/apply-host" className="btn-primary text-sm px-4" style={{ minWidth: 'auto', minHeight: 38 }}>
+            <Link
+              href="/apply-host"
+              className="text-sm font-semibold px-4 py-2 rounded-full text-black transition-colors"
+              style={{ backgroundColor: colors.brand.accent }}
+            >
               List your car
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="bg-navy text-white">
-        <div className="max-w-5xl mx-auto px-4 py-16 md:py-24">
-          <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-3 py-1 text-xs font-medium mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-              P2P car marketplace — Greater Toronto Area
-            </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4">
-              Rent to gig drivers.<br />
-              Earn while you sleep.
-            </h1>
-            <p className="text-blue-200 text-lg mb-8 leading-relaxed">
-              Easy Drive connects GTA car owners with verified Uber Eats, DoorDash, and
-              Skip drivers. Hosts earn 80% of every booking. Renters get insured,
-              GPS-tracked cars — no long-term commitment.
-            </p>
+      {/* ── Hero ────────────────────────────────────────────────────────────── */}
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+        {/* Background image */}
+        <Image
+          src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1200&q=85"
+          alt="Night highway with city lights — cinematic driving shot"
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="100vw"
+        />
+        {/* Dark gradient scrim */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-            {/* Dual CTAs */}
-            <div className="flex flex-col xs:flex-row gap-4">
-              <div className="flex-1">
-                <Link href="/apply-host"
-                  className="btn-primary text-base px-6 py-3 w-full justify-center"
-                  style={{ minWidth: 'auto', minHeight: 52, background: '#00C2D4' }}>
-                  List your car
-                </Link>
-                <p className="text-xs text-blue-300 text-center mt-2">Car owners · Earn $300–$450/wk</p>
+        {/* Hero content */}
+        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-widest mb-8 border"
+            style={{
+              borderColor: colors.border.accent,
+              color: colors.brand.accent,
+              backgroundColor: 'rgba(0,194,212,0.08)',
+            }}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ backgroundColor: colors.brand.accent }}
+            />
+            Greater Toronto Area — P2P Car Marketplace
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-black leading-none tracking-tight text-white mb-6">
+            Your car.<br />
+            <span style={{ color: colors.brand.accent }}>Their ride.</span><br />
+            Everyone wins.
+          </h1>
+
+          <p className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Easy Drive connects GTA car owners with verified gig drivers.
+            Hosts earn $300–$450/wk. Renters get GPS-tracked cars with no long lease.
+          </p>
+
+          {/* Pill CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/apply-host"
+              className="text-base font-bold px-10 py-4 rounded-full text-black transition-all hover:opacity-90 hover:scale-105"
+              style={{ backgroundColor: colors.brand.accent, minHeight: 56 }}
+            >
+              List your car
+            </Link>
+            <Link
+              href="/browse"
+              className="text-base font-bold px-10 py-4 rounded-full text-white border-2 transition-all hover:bg-white/10"
+              style={{ borderColor: colors.brand.accent, minHeight: 56 }}
+            >
+              Find a car
+            </Link>
+          </div>
+
+          {/* Platform pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
+            <span className="text-xs text-white/40 mr-1">Accepted on</span>
+            {platforms.map((p) => (
+              <span
+                key={p}
+                className="text-xs font-medium px-3 py-1 rounded-full border border-white/20 text-white/60"
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30 animate-bounce">
+          <span className="text-[10px] uppercase tracking-widest">Scroll</span>
+          <ChevronDown className="w-5 h-5" />
+        </div>
+      </section>
+
+      {/* ── Counter strip ───────────────────────────────────────────────────── */}
+      <section className="py-16 border-y border-white/10" style={{ backgroundColor: colors.surface.dark2 }}>
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {counters.map(({ number, label }) => (
+              <div key={label}>
+                <div
+                  className="text-5xl md:text-6xl font-black mb-2 tabular-nums"
+                  style={{ color: colors.brand.accent }}
+                >
+                  {number}
+                </div>
+                <div className="text-sm text-white/50 uppercase tracking-wide font-medium">{label}</div>
               </div>
-              <div className="flex-1">
-                <Link href="/browse"
-                  className="btn-secondary text-base px-6 py-3 w-full justify-center border-white/20 text-white bg-white/10 hover:bg-white/20"
-                  style={{ minWidth: 'auto', minHeight: 52 }}>
-                  Find a car
-                </Link>
-                <p className="text-xs text-blue-300 text-center mt-2">Gig drivers · From $300/wk</p>
-              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Two-column: photo left, how-it-works right ───────────────────────── */}
+      <section className="py-0 overflow-hidden" style={{ backgroundColor: colors.surface.dark3 }}>
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2">
+
+          {/* Left: full-height photo */}
+          <div className="relative min-h-[500px] md:min-h-[640px]">
+            <Image
+              src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&q=85"
+              alt="Gig driver standing next to their car on a GTA street"
+              fill
+              className="object-cover object-center"
+              sizes="(max-width: 768px) 100vw, 50vw"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/60" />
+          </div>
+
+          {/* Right: how it works */}
+          <div className="px-10 py-16 flex flex-col justify-center" style={{ backgroundColor: colors.surface.dark4 }}>
+            <div
+              className="text-xs font-bold uppercase tracking-widest mb-4"
+              style={{ color: colors.brand.accent }}
+            >
+              How it works
+            </div>
+            <h2 className="text-3xl md:text-4xl font-black text-white mb-10 leading-tight">
+              From listing to earning<br />in 48 hours.
+            </h2>
+
+            <div className="space-y-8">
+              {howItWorksSteps.map(({ step, title, desc }) => (
+                <div key={step} className="flex gap-5">
+                  <div
+                    className="text-3xl font-black tabular-nums flex-shrink-0 leading-none mt-1"
+                    style={{ color: 'rgba(0,194,212,0.25)' }}
+                  >
+                    {step}
+                  </div>
+                  <div>
+                    <div className="font-bold text-white mb-1">{title}</div>
+                    <div className="text-sm text-white/50 leading-relaxed">{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 mt-10">
+              <Link
+                href="/apply-host"
+                className="text-sm font-bold px-6 py-3 rounded-full text-black"
+                style={{ backgroundColor: colors.brand.accent }}
+              >
+                List your car
+              </Link>
+              <Link
+                href="/browse"
+                className="text-sm font-bold px-6 py-3 rounded-full text-white border border-white/25 hover:border-white/50 transition-colors"
+              >
+                Find a car
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── How the marketplace works ─────────────────────────────────────── */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-5xl mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">How Easy Drive works</h2>
-          <p className="text-center text-gray-500 mb-12 text-sm">Two sides, one platform</p>
+      {/* ── Testimonials ────────────────────────────────────────────────────── */}
+      <section className="py-20" style={{ backgroundColor: colors.surface.dark2 }}>
+        <div className="max-w-5xl mx-auto px-6">
+          <div
+            className="text-xs font-bold uppercase tracking-widest mb-3 text-center"
+            style={{ color: colors.brand.accent }}
+          >
+            What our community says
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-white text-center mb-12">
+            Real people. Real income.
+          </h2>
 
-          <div className="grid md:grid-cols-2 gap-10">
-            {/* For Hosts */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
-                  style={{ background: 'var(--color-primary)' }}>
-                  <DollarSign className="w-4 h-4 text-white" />
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map(({ quote, name, city, role, initials }) => (
+              <div
+                key={name}
+                className="p-6 rounded-2xl border flex flex-col gap-5"
+                style={{ backgroundColor: colors.surface.dark5, borderColor: 'rgba(255,255,255,0.08)' }}
+              >
+                {/* Stars */}
+                <div className="flex gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} className="text-amber-400 text-sm">&#9733;</span>
+                  ))}
                 </div>
-                <h3 className="font-bold text-gray-900">For car owners (Hosts)</h3>
-              </div>
-              <ol className="space-y-3">
-                {[
-                  'List your vehicle — add photos, set your weekly rate, configure GPS',
-                  'Get approved — we review insurance and hardware within 48 hours',
-                  'Accept bookings — renters request, you confirm (or auto-accept)',
-                  'Earn 80% — weekly payouts direct to your bank via Stripe',
-                ].map((step, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
-                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ color: 'var(--color-primary)' }}>
-                      {i + 1}
-                    </span>
-                    {step}
-                  </li>
-                ))}
-              </ol>
-              <Link href="/apply-host" className="btn-primary mt-5 inline-flex"
-                style={{ minWidth: 'auto', minHeight: 42 }}>
-                List a vehicle
-              </Link>
-            </div>
 
-            {/* For Renters */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-navy">
-                  <Car className="w-4 h-4 text-white" />
+                {/* Quote */}
+                <p className="text-white/75 text-sm leading-relaxed flex-1">
+                  &ldquo;{quote}&rdquo;
+                </p>
+
+                {/* Attribution */}
+                <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
+                    style={{ backgroundColor: colors.brand.accent, color: colors.text.onAccent }}
+                  >
+                    {initials}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-white">{name}</div>
+                    <div className="text-xs text-white/40">{city} &middot; {role}</div>
+                  </div>
                 </div>
-                <h3 className="font-bold text-gray-900">For gig drivers (Renters)</h3>
               </div>
-              <ol className="space-y-3">
-                {[
-                  'Apply once — verify your licence, gig account, and identity',
-                  'Browse listings — filter by city, price, and vehicle type',
-                  'Request a booking — host confirms, you pay weekly + $500 deposit',
-                  'Pick up and earn — GPS-tracked, insured, and ready to go',
-                ].map((step, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
-                    <span className="w-5 h-5 rounded-full bg-navy/10 text-navy font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {i + 1}
-                    </span>
-                    {step}
-                  </li>
-                ))}
-              </ol>
-              <Link href="/apply-renter" className="btn-secondary mt-5 inline-flex"
-                style={{ minWidth: 'auto', minHeight: 42 }}>
-                Apply as a renter
-              </Link>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── Trust signals ─────────────────────────────────────────────────── */}
-      <section className="py-16 bg-white">
-        <div className="max-w-5xl mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Why Easy Drive?</h2>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {[
-              { icon: Shield, title: 'Verified renters only',        desc: 'Every renter passes licence, identity, and gig account verification before they can book.' },
-              { icon: MapPin, title: 'GPS + kill switch on every car', desc: 'Hosts and Easy Drive can locate and remotely disable any vehicle if needed.' },
-              { icon: DollarSign, title: 'Hosts keep 80%',           desc: 'Platform fee is 20%. Weekly payouts go directly to your bank via Stripe.' },
-              { icon: Car, title: 'Delivery-ready vehicles',          desc: 'Listings must be insured for commercial delivery use in Ontario.' },
-              { icon: Clock, title: 'Weekly flexibility',             desc: 'No 12-month leases. Renters book week-to-week. Hosts can pause anytime.' },
-              { icon: Users, title: 'Ontario-registered business',    desc: 'Operated by GB Trade and Logistics Inc. — fully incorporated in Ontario.' },
-            ].map(({ icon: Icon, title, desc }) => (
+      {/* ── Why Easy Drive ──────────────────────────────────────────────────── */}
+      <section className="py-20 border-y border-white/10" style={{ backgroundColor: colors.surface.dark3 }}>
+        <div className="max-w-5xl mx-auto px-6">
+          <div
+            className="text-xs font-bold uppercase tracking-widest mb-3 text-center"
+            style={{ color: colors.brand.accent }}
+          >
+            Built different
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-white text-center mb-12">
+            Why Easy Drive?
+          </h2>
+
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+            {whyItems.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex gap-4">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'var(--color-primary-light)' }}>
-                  <Icon className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{
+                    backgroundColor: 'rgba(0,194,212,0.12)',
+                    border: '1px solid rgba(0,194,212,0.2)',
+                  }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: colors.brand.accent }} />
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900 mb-1 text-sm">{title}</div>
-                  <div className="text-sm text-gray-500 leading-relaxed">{desc}</div>
+                  <div className="font-bold text-white mb-1 text-sm">{title}</div>
+                  <div className="text-sm text-white/45 leading-relaxed">{desc}</div>
                 </div>
               </div>
             ))}
@@ -162,89 +344,88 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-2xl mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Frequently asked questions</h2>
-          <div className="space-y-4">
-            {[
-              {
-                q: 'How does the 80/20 split work?',
-                a: 'Renters pay the host\'s weekly rate plus a 20% platform fee (collected by Easy Drive). Hosts receive 80% of the booking rate, paid weekly via Stripe direct deposit.',
-              },
-              {
-                q: 'What insurance is required to list my car?',
-                a: 'Your vehicle must have a valid commercial insurance policy that covers P2P car rental and delivery use in Ontario. You will upload the certificate during the listing process.',
-              },
-              {
-                q: 'What GPS hardware is required?',
-                a: 'Every listed vehicle must have a Bouncie GPS device installed. An optional PassTime kill switch module enables remote immobilization. Both device IDs must be entered during listing setup.',
-              },
-              {
-                q: 'How does the $500 deposit work?',
-                a: 'We hold $500 as a security deposit at booking confirmation (card authorisation only — not charged). It is released in full after a clean return, or partially captured if there is damage.',
-              },
-              {
-                q: 'Who can rent a car on Easy Drive?',
-                a: 'Ontario drivers with a valid G or G2 licence, an active gig platform account (Uber Eats, DoorDash, Skip, Instacart), and no suspended licence or 3+ at-fault accidents.',
-              },
-              {
-                q: 'Can a host disable their own vehicle?',
-                a: 'Yes. Hosts can disable the ignition remotely if there is an active booking and they have a valid reason. Re-enabling requires Easy Drive admin approval — this prevents abuse.',
-              },
-            ].map(({ q, a }) => (
-              <details key={q} className="card group cursor-pointer">
-                <summary className="flex items-center justify-between font-medium text-gray-900 text-sm list-none">
-                  {q}
-                  <ChevronDown className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-3" />
-                </summary>
-                <p className="mt-3 text-sm text-gray-500 leading-relaxed">{a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── Bold full-width CTA ──────────────────────────────────────────────── */}
+      <section
+        className="py-24 text-center relative overflow-hidden"
+        style={{ backgroundColor: colors.surface.dark1 }}
+      >
+        {/* Subtle radial glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 70% 50% at 50% 50%, rgba(0,194,212,0.07) 0%, transparent 70%)',
+          }}
+        />
 
-      {/* ── Bottom CTAs ───────────────────────────────────────────────────── */}
-      <section className="py-16 bg-navy text-white text-center">
-        <div className="max-w-2xl mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-3">Ready to get started?</h2>
-          <p className="text-blue-200 mb-8">Car owners and gig drivers both welcome.</p>
+        <div className="relative z-10 max-w-4xl mx-auto px-6">
+          <h2 className="text-4xl md:text-6xl font-black text-white leading-tight mb-4">
+            Your car. Their ride.<br />
+            <span style={{ color: colors.brand.accent }}>Everyone wins.</span>
+          </h2>
+          <p className="text-white/50 text-lg mb-10 max-w-xl mx-auto">
+            Join hundreds of GTA hosts and drivers already on the platform.
+            Get started in under 5 minutes.
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/apply-host" className="btn-primary text-base px-8 inline-flex justify-center"
-              style={{ minHeight: 52, background: 'var(--color-primary)' }}>
-              List your car as a host
+            <Link
+              href="/apply-host"
+              className="text-base font-black px-10 py-4 rounded-full text-black hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: colors.brand.accent, minHeight: 56 }}
+            >
+              List your car — it&apos;s free
             </Link>
-            <Link href="/browse" className="btn-secondary text-base px-8 inline-flex justify-center border-white/20 text-white bg-white/10 hover:bg-white/20"
-              style={{ minHeight: 52 }}>
+            <Link
+              href="/browse"
+              className="text-base font-bold px-10 py-4 rounded-full text-white border-2 hover:bg-white/10 transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.25)', minHeight: 56 }}
+            >
               Browse available cars
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="bg-gray-900 text-gray-400 py-8">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm">
-          <span>© 2026 Easy Drive · A division of GB Trade and Logistics Inc.</span>
+      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/10 py-10" style={{ backgroundColor: colors.surface.dark2 }}>
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-white/35">
+          <div>
+            <span className="font-black text-white text-lg">
+              Easy<span style={{ color: colors.brand.accent }}>Drive</span>
+            </span>
+            <p className="text-xs mt-1 text-white/30">
+              A division of GB Trade and Logistics Inc. &copy; 2026
+            </p>
+          </div>
           <div className="flex gap-6">
-            <Link href="/privacy"     className="hover:text-white">Privacy</Link>
-            <Link href="/terms"       className="hover:text-white">Terms</Link>
-            <Link href="/apply-host"  className="hover:text-white">List a car</Link>
-            <Link href="/browse"      className="hover:text-white">Find a car</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/apply-host" className="hover:text-white transition-colors">List a car</Link>
+            <Link href="/browse" className="hover:text-white transition-colors">Find a car</Link>
+            <Link href="/login" className="hover:text-white transition-colors">Sign in</Link>
           </div>
         </div>
       </footer>
 
-      {/* ── Mobile sticky CTA bar ──────────────────────────────────────────── */}
-      <div className="mobile-cta-bar">
-        <Link href="/apply-host" className="btn-primary flex-1 justify-center text-sm" style={{ minWidth: 0 }}>
+      {/* ── Mobile sticky CTA bar ────────────────────────────────────────────── */}
+      <div
+        className="mobile-cta-bar"
+        style={{ backgroundColor: colors.surface.dark2, borderColor: 'rgba(255,255,255,0.12)' }}
+      >
+        <Link
+          href="/apply-host"
+          className="flex-1 text-center text-sm font-bold py-3 rounded-full text-black"
+          style={{ backgroundColor: colors.brand.accent }}
+        >
           List your car
         </Link>
-        <Link href="/browse" className="btn-secondary flex-1 justify-center text-sm" style={{ minWidth: 0 }}>
+        <Link
+          href="/browse"
+          className="flex-1 text-center text-sm font-bold py-3 rounded-full text-white border border-white/25"
+        >
           Find a car
         </Link>
       </div>
+
     </div>
   )
 }

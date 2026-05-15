@@ -1,10 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 
 /**
  * Server-side Supabase client (anon key, respects RLS).
  * Use in React Server Components and API routes for user-scoped operations.
+ * Auth is read from the Supabase SSR cookie session managed by middleware.
  */
 export function createClient() {
   const cookieStore = cookies()
@@ -26,6 +28,57 @@ export function createClient() {
       },
     }
   )
+}
+
+/**
+ * Mobile API client — authenticates via Authorization: Bearer <access_token>.
+ *
+ * The Expo app cannot use cookies. Instead it sends the Supabase JWT in the
+ * Authorization header of every API request. This helper extracts that token
+ * and calls setSession so that RLS policies evaluate correctly server-side.
+ *
+ * Usage in an API route:
+ *   const supabase = await createMobileClient(request.headers.get('Authorization'))
+ *
+ * Security note: setSession with an empty refresh_token is intentional here.
+ * The mobile client refreshes tokens independently; the server only needs the
+ * access token to verify the JWT and enforce RLS. Never log or store the token.
+ */
+export async function createMobileClient(authHeader: string | null) {
+  const client = createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    await client.auth.setSession({ access_token: token, refresh_token: '' })
+  }
+
+  return client
+}
+
+/**
+ * Unified API client — works for both web (cookie session) and mobile (Bearer token).
+ *
+ * Tries the Authorization header first (mobile); if absent or not a Bearer token,
+ * falls back to the cookie-based SSR client (web). This lets a single API route
+ * handler serve both platforms without duplication.
+ *
+ * Usage in an API route:
+ *   const supabase = await createApiClient(request)
+ *   const { data: { session } } = await supabase.auth.getSession()
+ */
+export async function createApiClient(request: Request) {
+  const authHeader = request.headers.get('Authorization')
+
+  if (authHeader?.startsWith('Bearer ')) {
+    // Mobile path — JWT in Authorization header
+    return createMobileClient(authHeader)
+  }
+
+  // Web path — cookie session managed by Supabase SSR middleware
+  return createClient()
 }
 
 /**
