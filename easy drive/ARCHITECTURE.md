@@ -1,6 +1,6 @@
 # Easy Drive — Solution Architecture
 **Lead Solutions Architect Document**
-**Version 2.0 | May 2026 | Marketplace Model**
+**Version 2.1 | May 2026 | Cross-Platform**
 
 > *"The platform owns no cars. The platform owns the trust."*
 > Philosophy: managed services over self-hosted, monolith over microservices at this stage,
@@ -39,6 +39,111 @@ The tech stack stays the same.
 
 ---
 
+## 0.1 Cross-Platform Strategy
+
+**Strategic decision (May 2026):** Easy Drive will ship as **both a web app and native mobile apps
+for Android and iOS**. The mobile apps serve Hosts and Renters only — Admin stays web-only. The web
+app remains the primary surface for launch; mobile apps are Phase 2–3. This section documents the
+architectural decisions that must be respected from now on, even though no mobile code is written yet.
+
+### A. API-First Design (retroactive confirmation)
+
+The current Next.js API routes (`app/api/`) must be treated as a **platform API**, not web-only
+routes. Every endpoint that hosts and renters use must:
+
+- **Accept and return JSON** — already true.
+- **Be stateless** — already true via Supabase Auth JWT.
+- **Use Bearer token auth** — mobile apps will send `Authorization: Bearer <jwt>` headers instead of
+  relying on cookies. Web can keep using cookie sessions; the API must accept *both*.
+- **Be versioned** — introduce a `/api/v1/` prefix for all host/renter routes so mobile apps can
+  target a stable contract.
+
+This means the existing routes should eventually move to `/api/v1/host/`, `/api/v1/renter/`, etc.
+This is a **planned migration, not a blocker** for current work — web development continues against
+the current paths until the migration runs (see Open Question 5).
+
+### B. Mobile App Technology Decision
+
+| Option | Summary |
+|---|---|
+| **React Native (Expo)** | Shared TypeScript/React codebase with web; familiar ecosystem for a JS team; strong community; Expo handles OTA updates; works with the Supabase JS SDK directly |
+| **Flutter** | Dart language; excellent performance and UI fidelity; Google's cross-platform framework; separate codebase from the web |
+| **Native Swift/Kotlin** | Best performance and platform integration; two separate codebases (iOS + Android); highest cost |
+
+**Decision: React Native with Expo.** It is the right choice for Easy Drive at this stage because:
+
+1. The team already works in TypeScript/React — zero new language to learn.
+2. Supabase has a first-class React Native SDK (`@supabase/supabase-js` works in React Native).
+3. Stripe ships `@stripe/stripe-react-native` for native payment UI.
+4. Expo OTA (over-the-air) updates mean JS-only bug fixes ship without App Store review delays.
+5. Expo EAS Build handles iOS and Android CI/CD from a single config.
+6. The web's existing component logic (validation, API calls, state shapes) can be shared via a
+   `packages/` directory in a monorepo.
+
+### C. Monorepo Structure
+
+The platform transitions from a single Next.js app to a monorepo housing both the web app and the
+React Native app:
+
+```
+easy-drive/
+├── apps/
+│   ├── web/                    # Current Next.js app (moved here)
+│   │   └── src/                # Everything currently in src/
+│   └── mobile/                 # New React Native (Expo) app
+│       ├── app/                # Expo Router file-based routing
+│       ├── components/
+│       └── package.json
+├── packages/
+│   ├── api-client/             # Typed fetch wrappers for all /api/v1/ routes
+│   │   └── src/
+│   │       ├── host.ts         # createListing(), submitListing(), acceptBooking(), etc.
+│   │       ├── renter.ts       # createBooking(), getVehicles(), etc.
+│   │       └── types.ts        # Shared TypeScript types (BookingWithDetails, etc.)
+│   ├── ui/                     # Shared primitive components (web uses next/image, mobile uses RN Image — keep platform-agnostic logic)
+│   └── config/                 # Shared Zod schemas, constants (platform fee %, deposit amount, etc.)
+├── package.json                # Workspace root (npm workspaces or Turborepo)
+└── turbo.json                  # Turborepo pipeline config (optional but recommended)
+```
+
+This is a **planned migration** — the current code is *not* restructured now. The above is the
+target state. The web app continues development in its current location (`src/`) until the monorepo
+migration is ready.
+
+### D. Mobile-Specific Feature Considerations
+
+These mobile-first features are not yet built but must be architected correctly now:
+
+| Feature | Web approach | Mobile approach | Architectural note |
+|---|---|---|---|
+| Push notifications | Not applicable (SMS via Twilio) | FCM (Android) + APNs (iOS) via Expo Notifications | Supabase Edge Function triggers push on booking events; store Expo push tokens in `profiles.expo_push_token` |
+| GPS live view (host) | Bouncie API polled server-side | Same API, but mobile can also use device GPS for host walking to car | Add `expo-location` for renter pickup navigation |
+| Kill switch | Web UI button → API call | Same API, but mobile shows a native alert/action sheet before confirming | No architecture change needed — API is already correct |
+| Photo upload (listing, inspection) | Supabase Storage signed URLs via browser file picker | `expo-image-picker` → same signed URL upload flow | API route `/api/uploads/signed-url` already exists and works for mobile |
+| Stripe payment | Stripe.js Elements in browser | `@stripe/stripe-react-native` with native payment sheet | Stripe Connect split-charge logic stays server-side (unchanged) — only the client-side payment UI differs |
+| Auth | Supabase cookie sessions | Supabase JWT stored in `expo-secure-store` | API routes must accept `Authorization: Bearer <jwt>` headers — currently may rely on cookies for some routes |
+| Offline tolerance | Browser cache/reload | React Query + optimistic UI; booking data cached for offline read | Add `staleTime` and `cacheTime` guidance to the api-client package |
+| Deep links | N/A (URL routing) | Expo Router universal links — `easydrive://booking/[id]` | Configure `app.json` with `scheme: "easydrive"` and iOS Associated Domains / Android App Links |
+
+### E. App Store Considerations
+
+These requirements affect architecture and must be planned for:
+
+- **Apple App Store:** Payments in marketplace apps must go through Apple's In-App Purchase if Apple
+  deems the booking a "digital good." Easy Drive's bookings are for **physical car rentals** — a
+  physical service — and are therefore **exempt** from IAP requirements (same as Uber, Airbnb).
+  Documented explicitly here to pre-empt future confusion.
+- **Google Play:** The same exemption applies. Stripe payments for physical services are permitted.
+- **Privacy:** Both stores require a privacy policy URL — a `/privacy` page must exist before
+  submission.
+- **Location permissions:** The host GPS live view and renter pickup navigation require location
+  permissions. Use Expo's `expo-location` with `requestForegroundPermissionsAsync()` — never request
+  background location unless there is a specific, justified use case.
+- **Minimum OS versions to target:** iOS 16+ (covers ~95% of active iPhones as of 2026), Android 10+
+  (API level 29).
+
+---
+
 ## 1. Architecture Decision Summary (ADR)
 
 | Decision | Choice | Rationale |
@@ -55,6 +160,11 @@ The tech stack stays the same.
 | Auth | Supabase Auth | Single identity table; role enforced in `profiles.role` with RLS |
 | Messaging (Phase 2) | Supabase Realtime + Postgres `messages` table | No extra vendor; persisted, auditable, RLS-controlled |
 | Background jobs | Vercel Cron + Inngest (Phase 3) | Weekly payouts reconciliation, deposit release SLAs, review reminder fan-out |
+| Mobile framework | React Native (Expo SDK 51+) | TypeScript/React parity with web; Supabase + Stripe native SDKs; Expo EAS Build for CI/CD; OTA updates bypass App Store review for JS changes |
+| Mobile auth storage | `expo-secure-store` | Encrypted device keychain storage for Supabase JWT; never AsyncStorage for tokens |
+| Mobile push | Expo Notifications + FCM/APNs | Single SDK handles both platforms; push token stored in `profiles.expo_push_token` |
+| API versioning | `/api/v1/` prefix (planned) | Mobile clients need a stable API contract; web can tolerate churn, mobile cannot |
+| Monorepo tooling | npm Workspaces + Turborepo | Shared `packages/api-client` and `packages/config` between web and mobile; Turborepo handles build caching |
 
 **Rejected alternatives:**
 - **Plain Stripe Checkout** — cannot do host KYC, cannot split charges to a third-party bank account, cannot do compliant payouts. Stripe Connect is non-negotiable for the marketplace model.
@@ -63,6 +173,9 @@ The tech stack stays the same.
 - **Building our own escrow** — illegal without a money services business license. Stripe Connect's hold/transfer model is the legal, compliant primitive.
 - **Microservices** — overkill at 10–50 listings; adds operational drag with no operator team.
 - **Twilio Conversations for messaging** — adds cost and lock-in; Postgres + Realtime is sufficient at this scale.
+- **Flutter** — Dart is a new language for the team; no Supabase Flutter SDK parity with the JS SDK; separate UI system from the web; rejected in favour of React Native for team velocity.
+- **PWA-only (no native app)** — push notifications, deep links, and App Store presence are strategically important for user acquisition; a PWA cannot match the native install experience on iOS; rejected.
+- **Capacitor (Ionic)** — wraps the web app in a WebView; inherits web performance characteristics on mobile; acceptable but React Native's true native rendering is preferable for a daily-driver gig tool that renters use heavily.
 
 ---
 
@@ -1060,8 +1173,10 @@ At 50 listings, platform revenue ≈ $12,900/month, platform tech cost ≈ $1,12
 |---|---|---|
 | MVP | 2–10 | Next.js monolith on Vercel; Supabase free → Pro; no async jobs needed |
 | Growth | 10–50 | Vercel Pro, Supabase Pro, add Inngest for cron + retries; Bouncie webhook in dedicated queue if volume warrants |
+| **Mobile Beta** | **20–50** | **React Native (Expo) app built; internal TestFlight/Play beta; push notifications live; monorepo migration begins** |
 | Scale | 50–200 | Split admin app into separate deployment (security isolation); partition `gps_events` by month; read replicas for analytics |
-| Multi-city | 200+ | Listing search service (Algolia or Postgres + tsvector) extracted; mobile app (React Native); Bouncie alternative evaluated per market |
+| **Mobile GA** | **50+** | **App Store + Play Store launch; Expo EAS Update for OTA patches; deep links + universal links configured** |
+| Multi-city | 200+ | Listing search service (Algolia or Postgres + tsvector) extracted; full monorepo operational; mobile parity with web; Bouncie alternative evaluated per market |
 
 **10× user growth handling:**
 - Vercel auto-scales serverless functions; no action needed.
@@ -1155,10 +1270,14 @@ At 50 listings, platform revenue ≈ $12,900/month, platform tech cost ≈ $1,12
 2. **Identity verification** — current model is admin-reviewed photo ID. At scale, evaluate Stripe Identity ($1.50/verification) or Persona to automate.
 3. **Host taxes** — Stripe Connect issues T4A equivalents in Canada to hosts who exceed thresholds. Confirm reporting workflow with accountant before Phase 2 close.
 4. **Dispute mediation SLA** — defining a hard SLA (e.g., 48 hours to first response) and surfacing it on the public site builds trust. Operational, not architectural — but the data model already supports it via `damage_claims.submitted_at`.
+5. **API versioning migration** — when does the web API get versioned to `/api/v1/`? Recommendation: do it *before* the mobile beta starts, not after. Each route rename requires a web + mobile deploy, so doing it while mobile is pre-launch is the lowest-cost window.
+6. **Cookie vs Bearer token** — some current API routes may rely on Supabase's cookie session (set by the middleware). Mobile apps cannot send cookies easily. Audit all host/renter API routes to confirm they work with `Authorization: Bearer <jwt>` headers *before* mobile development starts.
+7. **Expo push token lifecycle** — tokens expire and rotate. The platform needs a refresh mechanism: on app foreground, send the current token to `PATCH /api/v1/renter/profile` or `PATCH /api/v1/host/profile`. Add an `expo_push_token` column to `profiles` in the next DB migration.
+8. **App Store review timeline** — the first submission to the App Store takes 1–3 days for review. Plan the mobile launch date with a 2-week buffer for review + rejection cycles. Subsequent updates using Expo OTA skip the review entirely for JS-only changes.
 
 ---
 
 *Architecture designed under the Easy Drive Lead Solutions Architect framework.*
 *All decisions documented per ADR standards. Review at each phase gate.*
 *Document version controlled in: `c:/projects/easy drive/ARCHITECTURE.md`*
-*Version 2.0 — Marketplace Model — supersedes Version 1.0 (Fleet Model).*
+*Version 2.1 — Cross-Platform — supersedes Version 2.0 (Marketplace Model).*
