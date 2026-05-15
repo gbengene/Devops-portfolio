@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Car, CreditCard, FileText, Phone, AlertCircle, Clock, CheckCircle } from 'lucide-react'
+import { Car, FileText, Phone, AlertCircle, Clock, CheckCircle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,44 +12,37 @@ export default async function RenterPortal() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, renter_status')
     .eq('auth_user_id', user.id)
-    .single()
+    .single() as { data: any }
 
   if (!profile) redirect('/apply')
 
-  // Active rental
-  const { data: rental } = await supabase
-    .from('rentals')
+  const { data: booking } = await supabase
+    .from('bookings')
     .select(`
-      id, status, weekly_rate_cad, deposit_cad, start_date,
-      vehicles!vehicle_id(make, model, year, plate_number, colour),
-      stripe_subscription_id
+      id, status, start_date, weekly_rate_cad, deposit_cad,
+      vehicles!vehicle_id(make, model, year, plate_number, colour)
     `)
-    .eq('renter_id', profile.id)
-    .in('status', ['active', 'pending_payment', 'pending_signature'])
+    .eq('renter_id', profile.id as string)
+    .in('status', ['active', 'confirmed', 'requested'])
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle() as { data: any }
 
-  // Recent payments
-  const { data: payments } = await supabase
-    .from('payments')
-    .select('id, type, amount_cad, status, paid_at, created_at')
-    .eq('rental_id', rental?.id ?? '00000000-0000-0000-0000-000000000000')
-    .order('created_at', { ascending: false })
-    .limit(5)
+  let application: { id: string; status: string; submitted_at: string } | null = null
+  if (!booking) {
+    const { data: appData } = await supabase
+      .from('renter_applications')
+      .select('id, status, submitted_at')
+      .eq('renter_id', profile.id as string)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle() as { data: any }
+    application = appData ?? null
+  }
 
-  // Most recent application if no active rental
-  const { data: application } = !rental ? await supabase
-    .from('applications')
-    .select('id, status, submitted_at')
-    .eq('applicant_id', profile.id)
-    .order('submitted_at', { ascending: false })
-    .limit(1)
-    .maybeSingle() : { data: null }
-
-  const firstName = profile.full_name?.split(' ')[0] ?? 'there'
+  const firstName = (profile.full_name as string | null)?.split(' ')[0] ?? 'there'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -67,102 +60,94 @@ export default async function RenterPortal() {
 
         {/* Greeting */}
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Hi {firstName} 👋</h1>
+          <h1 className="text-xl font-bold text-gray-900">Hi {firstName}</h1>
           <p className="text-sm text-gray-500">Your Easy Drive dashboard</p>
         </div>
 
-        {/* ── No rental: application status ── */}
-        {!rental && application && (
+        {/* No booking: application status */}
+        {!booking && application && (
           <ApplicationStatusCard status={application.status} submittedAt={application.submitted_at} />
         )}
 
-        {/* ── No rental or application ── */}
-        {!rental && !application && (
+        {/* No booking or application */}
+        {!booking && !application && (
           <div className="card text-center py-10">
             <Car className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="font-medium text-gray-700 mb-1">No active rental</p>
-            <p className="text-sm text-gray-400 mb-5">Apply to get behind the wheel today</p>
-            <Link href="/apply" className="btn-primary" style={{ minWidth: 'auto' }}>Apply Now</Link>
+            <p className="font-medium text-gray-700 mb-1">No active booking</p>
+            <p className="text-sm text-gray-400 mb-5">Browse available cars and request one today</p>
+            <Link href="/browse" className="btn-primary" style={{ minWidth: 'auto' }}>Browse cars</Link>
           </div>
         )}
 
-        {/* ── Active / Pending rental ── */}
-        {rental && (
+        {/* Active / Confirmed / Requested booking */}
+        {booking && (
           <>
-            {/* Vehicle card */}
             <div className="card">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Your Vehicle</p>
                   <h2 className="text-lg font-bold text-gray-900">
-                    {rental.vehicles.year} {rental.vehicles.make} {rental.vehicles.model}
+                    {booking.vehicles.year} {booking.vehicles.make} {booking.vehicles.model}
                   </h2>
-                  <p className="text-sm text-gray-500 capitalize">{rental.vehicles.colour}</p>
+                  <p className="text-sm text-gray-500 capitalize">{booking.vehicles.colour}</p>
                 </div>
-                <StatusBadge status={rental.status} />
+                <StatusBadge status={booking.status} />
               </div>
               <div className="flex items-center gap-2">
                 <Car className="w-4 h-4 text-gray-400" />
                 <span className="font-plate text-sm font-medium text-gray-800">
-                  {rental.vehicles.plate_number}
+                  {booking.vehicles.plate_number ?? 'TBD'}
                 </span>
               </div>
-              {rental.start_date && (
+              {booking.start_date && (
                 <p className="text-xs text-gray-400 mt-2">
-                  Rental started: {new Date(rental.start_date).toLocaleDateString('en-CA', { dateStyle: 'long' })}
+                  Start date: {new Date(booking.start_date).toLocaleDateString('en-CA', { dateStyle: 'long' })}
                 </p>
               )}
             </div>
 
-            {/* Action banners based on status */}
-            {rental.status === 'pending_payment' && (
-              <div className="alert-warning">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-amber-900 text-sm">Complete your payment setup</p>
-                    <p className="text-sm text-amber-700 mt-0.5">
-                      Your application is approved. Please add your payment method to activate your rental.
-                    </p>
-                    <Link href={`/portal/payment-setup?rental=${rental.id}`}
-                      className="inline-block mt-3 btn-primary text-sm" style={{ minWidth: 'auto', minHeight: 40 }}>
-                      Set up payment →
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {rental.status === 'pending_signature' && (
+            {booking.status === 'requested' && (
               <div className="alert-info">
                 <div className="flex items-start gap-3">
-                  <FileText className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-primary)' }} />
                   <div>
                     <p className="font-semibold text-sm" style={{ color: 'var(--color-navy)' }}>
-                      Sign your rental agreement
+                      Booking request sent
                     </p>
                     <p className="text-sm text-gray-600 mt-0.5">
-                      Check your email or SMS for your signing link, or tap below to re-send it.
+                      The host will respond within 24 hours. No payment is required yet.
                     </p>
-                    <button className="inline-block mt-3 btn-secondary text-sm" style={{ minWidth: 'auto', minHeight: 40 }}>
-                      Re-send signing link
-                    </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Next payment */}
-            {rental.status === 'active' && (
-              <NextPaymentCard weeklyRate={rental.weekly_rate_cad} />
+            {booking.status === 'confirmed' && (
+              <div className="alert-info">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: 'var(--color-navy)' }}>
+                      Booking confirmed
+                    </p>
+                    <p className="text-sm text-gray-600 mt-0.5">
+                      Your booking is confirmed. Contact the host to arrange pickup details.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {booking.status === 'active' && (
+              <NextPaymentCard weeklyRate={booking.weekly_rate_cad} />
             )}
 
             {/* Quick actions */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: FileText, label: 'Agreement',  href: `/portal/documents?rental=${rental.id}` },
-                { icon: CreditCard, label: 'Payments', href: `/portal/payments?rental=${rental.id}` },
-                { icon: Phone,      label: 'Contact',  href: 'https://wa.me/1XXXXXXXXXX' },
+                { icon: FileText, label: 'Agreement',  href: `/portal/documents?booking=${booking.id}` },
+                { icon: Clock,    label: 'History',    href: `/portal/history` },
+                { icon: Phone,    label: 'Contact',    href: 'https://wa.me/1XXXXXXXXXX' },
               ].map(({ icon: Icon, label, href }) => (
                 <Link key={label} href={href}
                   className="card-hover flex flex-col items-center gap-2 py-4 text-center">
@@ -171,36 +156,6 @@ export default async function RenterPortal() {
                 </Link>
               ))}
             </div>
-
-            {/* Recent payments */}
-            {payments && payments.length > 0 && (
-              <div className="card">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Recent Payments</h3>
-                <div className="space-y-2">
-                  {payments.map(p => (
-                    <div key={p.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {p.status === 'paid'
-                          ? <CheckCircle className="w-4 h-4 text-green-500" />
-                          : <Clock className="w-4 h-4 text-amber-500" />
-                        }
-                        <span className="text-sm text-gray-700 capitalize">
-                          {p.type.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-semibold text-gray-900">${p.amount_cad}</span>
-                        {p.paid_at && (
-                          <p className="text-xs text-gray-400">
-                            {new Date(p.paid_at).toLocaleDateString('en-CA')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Reminders */}
             <div className="card bg-gray-50 border-gray-100">
@@ -232,24 +187,25 @@ export default async function RenterPortal() {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    active:             'badge-active',
-    pending_payment:    'badge-pending',
-    pending_signature:  'badge-pending',
-    ended:              'badge-terminated',
-    terminated:         'badge-terminated',
+    requested:  'badge-pending',
+    confirmed:  'badge-pending',
+    active:     'badge-active',
+    completed:  'badge-terminated',
+    cancelled:  'badge-terminated',
+    declined:   'badge-terminated',
   }
   const labels: Record<string, string> = {
-    active:             'Active',
-    pending_payment:    'Setup Required',
-    pending_signature:  'Awaiting Signature',
-    ended:              'Ended',
-    terminated:         'Terminated',
+    requested:  'Requested',
+    confirmed:  'Confirmed',
+    active:     'Active',
+    completed:  'Completed',
+    cancelled:  'Cancelled',
+    declined:   'Declined',
   }
   return <span className={map[status] ?? 'badge'}>{labels[status] ?? status}</span>
 }
 
 function NextPaymentCard({ weeklyRate }: { weeklyRate: number }) {
-  // Calculate next Monday from today (weekly billing anchor)
   const today = new Date()
   const daysUntilMonday = (8 - today.getDay()) % 7 || 7
   const nextDate = new Date(today)

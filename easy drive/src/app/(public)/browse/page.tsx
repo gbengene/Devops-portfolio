@@ -279,7 +279,7 @@ function VehicleCard({ vehicle }: { vehicle: any }) {
             <span className="text-xs text-gray-400 ml-1">/wk</span>
           </div>
           <Link
-            href="/apply-renter"
+            href={`/vehicles/${vehicle.id}`}
             className="btn-primary text-xs px-4"
             style={{ minWidth: 'auto', minHeight: 36 }}>
             Book now
