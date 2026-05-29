@@ -1,0 +1,75 @@
+name: E2E Weekly Tests
+
+on:
+  schedule:
+    - cron: '0 6 * * 6'   # 06:00 UTC Saturday = 02:00 EDT / 01:00 EST — weekly
+  workflow_dispatch:       # allow manual runs from the Actions tab
+
+jobs:
+  e2e:
+    name: Playwright E2E — visitora.ca
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      BASE_URL: https://www.visitora.ca
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      TEST_BIZ_EMAIL: ${{ secrets.TEST_BIZ_EMAIL }}
+      TEST_BIZ_PASSWORD: ${{ secrets.TEST_BIZ_PASSWORD }}
+      TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+      TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Create screenshot directory
+        run: mkdir -p test-results/screenshots
+
+      - name: Run E2E tests (full audit)
+        id: run_tests
+        run: npx playwright test tests/visitora-full-audit.spec.ts --reporter=html,list
+        continue-on-error: true
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ github.run_number }}
+          path: test-results/screenshots/
+          retention-days: 14
+
+      - name: Upload traces (on failure)
+        uses: actions/upload-artifact@v4
+        if: steps.run_tests.outcome == 'failure'
+        with:
+          name: traces-${{ github.run_number }}
+          path: test-results/
+          retention-days: 7
+
+      - name: Fail job if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "::error::E2E tests failed. Check the playwright-report artifact for details."
+          exit 1
